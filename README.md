@@ -12,6 +12,6 @@ Basic Setup and Use
 Copy contents of /libraries to /{$appdir}/libraries
 Copy contents of /config to /{$appdir}/config
 
-At some point in your code : require APPPATH."libraries/AssetPackager/__autload.php";
+At some point in your code : require APPPATH."libraries/AssetPackager/__autoload.php";
 
 
