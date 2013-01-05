@@ -89,7 +89,7 @@ name of your choosing here.
 List the other script files by name that this specific file requires
 
 
-Style Paramter Breakdown
+Style Parameter Breakdown
 ------------------------
 
 ### dev_file
