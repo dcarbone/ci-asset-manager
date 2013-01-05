@@ -61,56 +61,52 @@ For example:
 These are the paramters that can make up any given group array.
 
 
-Script Parameter Breakdown
---------------------------
+### Script Parameter Breakdown
 
-### dev_file
+#### dev_file
 This field is required.  Use the full filename of the file relative to the assets/scripts
 directory defined further up in the config file
-#### If the file is remote, put the full URL here
+##### If the file is remote, put the full URL here
 
-### prod_file
+#### prod_file
 This field is optional.  It only effects non-development environments.
 
-### minify
+#### minify
 This field is optional, it defaults to true
 Minify only affects non-dev environments and the file will only be minified if both
 this paramter and the global "minify_scripts" parameter is set to true
 
-### cache
+#### cache
 This field is optional, it defaults to true
 Caching does multiple things and will be explained further below
 
-### name
+#### name
 This field defaults to whatever you put in dev_file, however you can specify a
 name of your choosing here.
 
-### requires
+#### requires
 List the other script files by name that this specific file requires
 
 
-Style Parameter Breakdown
-------------------------
+### Style Parameter Breakdown
 
-### dev_file
-### prod_file
-### minify
-### cache
-### name
-### requires
+#### dev_file
+#### prod_file
+#### minify
+#### cache
+#### name
+#### requires
 These follow the same rules as Scripts
 
-### media
+#### media
 Styles have the additional attribute of "media", this is used not only for non-combined output but
 when the global config "combine" is set to true, styles are grouped by "media" types for output.
 
-Views
------
+### Views
 
 View files are Javascript files which are not allowed to be remote and have a separate folder.
 These files do not have any parameters, simply list their names.
 
-Groups
-------
+### Groups
 
 An array of other groups which this group requires
