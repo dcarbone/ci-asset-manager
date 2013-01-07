@@ -129,7 +129,7 @@ class Style extends \AssetPackager\Asset
         );
         
         $replace_with = array(
-            str_replace(array("http:", "https:"), "", asset_url())
+            str_replace(array("http:", "https:"), "", $this->_config->asset_url)
         );
         
         return str_replace($replace_keys, $replace_with, $data);

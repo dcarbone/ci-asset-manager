@@ -237,6 +237,9 @@ class Assetpackager
                 "base_url"      => $this->base_url,
                 "base_path"     => $this->base_path,
                 
+                "asset_path"    => $this->asset_path,
+                "asset_url"     => $this->_asset_url,
+
                 "script_dir"    => $this->script_dir,
                 "script_url"    => $this->script_url,
                 "script_path"   => $this->script_path,

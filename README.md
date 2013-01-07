@@ -163,7 +163,7 @@ specific keywords:
 
     $replace_with = array(
         base_url(),
-        str_replace(array("http:", "https:"), "", asset_url()),
+        str_replace(array("http:", "https:"), "", $this->_config->asset_url),
         ((defined("ENVIRONMENT")) ? strtolower(constant("ENVIRONMENT")) : "production"),
         ((defined("ENVIRONMENT") && constant("ENVIRONMENT") === "DEVELOPMENT") ? "true" : "false")
     );
