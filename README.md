@@ -134,7 +134,7 @@ If you had:
 The end result would be that on each page request wherein this group was including on page load,  
 no local cache file is created for this specific file.  
 
-If this is a development environment, or $config['combine'] === FALSE, The output would simply be the <script /> tag  
+If this is a development environment, or $config['combine'] === FALSE, The output would simply be the < script /> tag  
 with the src="//ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js" (http / https are omitted).  
 
 If this was not a development environment and $config['combine'] === TRUE, then for the combined cache file a  
