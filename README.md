@@ -117,7 +117,7 @@ AssetPackager's caching system is rather robust, albeit static for the time bein
 The first time you use AssetPackager to load assets for output on your site with cache set to TRUE,  
 it creates parsed / cached versions of each asset in the $config['cache'] folder under the root assets folder.  
 
-**Example**
+**Example**  
 If you had:
 	
 	$config['groups']['jquery'] = array(
