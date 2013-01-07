@@ -109,3 +109,56 @@ These files do not have any parameters, simply list their names.
 ### Groups
 
 An array of other groups which this group requires
+
+Cache System
+------------
+AssetPackager's caching system is rather robust, albeit static for the time being.  
+
+The first time you use AssetPackager to load assets for output on your site with cache set to TRUE,  
+it creates parsed / cached versions of each asset in the $config['cache'] folder under the root assets folder.  
+
+**Example**
+If you had:
+	
+	$config['groups']['jquery'] = array(
+	    'scripts' => array(
+	        array(
+	            "dev_file" => 'http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js',
+	            "minify" => false,
+	            "cache" => false,
+	            "name" => "jquery"
+	        )
+	    )
+	);
+
+The end result would be that on each page request wherein this group was including on page load,  
+no local cache file is created for this specific file.  
+
+If this is a development environment, or $config['combine'] === FALSE, The output would simply be the <script /> tag  
+with the src="//ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js" (http / https are omitted).  
+
+If this was not a development environment and $config['combine'] === TRUE, then for the combined cache file a  
+CURL request will be made to retrieve the contents of the remote file for inclusion in the combined file output.  
+
+**Value Replacement**  
+Another key feature to the caching mechanism is key value replacement.  This works with any type of asset, and looks for these  
+specific keywords:
+
+	$replace_keys = array(
+        "{baseURL}",
+        "{assetURL}",
+        "{environment}",
+        "{debug}"
+    );
+
+    $replace_with = array(
+        base_url(),
+        str_replace(array("http:", "https:"), "", asset_url()),
+        ((defined("ENVIRONMENT")) ? strtolower(constant("ENVIRONMENT")) : "production"),
+        ((defined("ENVIRONMENT") && constant("ENVIRONMENT") === "DEVELOPMENT") ? "true" : "false")
+    );
+
+Currently these values are statically set.  I have plans to make them configurable, but I just haven't taken  
+the time to do it yet.
+
+
