@@ -1,5 +1,4 @@
-<?php
-
+<?php namespace DCarbone;
 // Suppress DateTime warnings
 date_default_timezone_set(@date_default_timezone_get());
 
@@ -13,102 +12,204 @@ date_default_timezone_set(@date_default_timezone_get());
  * 
  */
 
-// Copyright (c) 2012-2013 Daniel Carbone
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 class Assetpackager
 {
+    /**
+     * Full Url to application root
+     * @var string
+     */
     public $base_url = "";
+
+    /**
+     * Base Full Filepath to application root
+     * @var string
+     */
     public $base_path = "";
     
+    /**
+     * Asset directory name
+     * @var string
+     */
     public $asset_dir = "";
     
+    /**
+     * Script Directory name
+     * @var string
+     */
     public $script_dir  = "";
+    /**
+     * Full path to script directory
+     * @var string
+     */
     public $script_path = "";
+    /**
+     * Full URL to script directory
+     * @var string
+     */
     public $script_url  = "";
     
+    /**
+     * Script View directory name
+     * @var string
+     */
     public $script_view_dir = "";
+    /**
+     * Full path to script view directory
+     * @var string
+     */
     public $script_view_path = "";
+    /**
+     * Full URL to script view directory
+     * @var string
+     */
     public $script_view_url = "";
     
+    /**
+     * Style directory name
+     * @var string
+     */
     public $style_dir  = "";
+    /**
+     * Full path to style directory
+     * @var string
+     */
     public $style_path = "";
+    /**
+     * Full URL to style directory
+     * @var string
+     */
     public $style_url  = "";
     
+    /**
+     * Cache directory name
+     * @var string
+     */
     public $cache_dir  = "";
+    /**
+     * Full path to cache directory
+     * @var string
+     */
     public $cache_path = "";
+    /**
+     * Full URL to cache directory
+     * @var string
+     */
     public $cache_url  = "";
     
+    /**
+     * Development environment
+     * @var boolean
+     */
     public $dev        = FALSE;
+
+    /**
+     * Combine like files
+     * @var boolean
+     */
     public $combine    = TRUE;
     
+    /**
+     * Minify Script files
+     * @var boolean
+     */
     public $minify_scripts = TRUE;
+    /**
+     * Minify Style Files
+     * @var boolean
+     */
     public $minify_styles = TRUE;
+    /**
+     * Force CURL to be used over file_get_contents
+     * @var boolean
+     */
     public $force_curl = FALSE;
     
-    // This should only be used when Asset Packager is used as a stand-alone class
+    /**
+     * Callable error function
+     * @var [type]
+     */
     public $error_callback = NULL;
     
-    // These three vars contain a list of all currently installed assets
+    /**
+     * Scripts
+     * @var array
+     */
     private $_scripts    = array();
-    private $_styles     = array();
-    private $_groups     = array();
+    /**
+     * Script Views
+     * @var array
+     */
     private $_script_views = array();
+    /**
+     * Styles
+     * @var array
+     */
+    private $_styles     = array();
+    /**
+     * Groups
+     * @var array
+     */
+    private $_groups     = array();
     
-    // This array is populated by the various "load" methods
+    /**
+     * Loaded Assets
+     * @var array
+     */
     private $_loaded     = array();
     
-    // These are used to define if output has occurred.
+    /**
+     * Style output
+     * @var boolean
+     */
     public $styles_output   = false;
+    /**
+     * Script output
+     * @var boolean
+     */
     public $scripts_output  = false;
     
-    // Specifically for use with CodeIgniter
+    /**
+     * CodeIgniter Instance
+     * @var Object
+     */
     private static $_CI = NULL;
     
+    /**
+     * AssetPackager Configuration
+     * @var Array
+     */
     private $_config = NULL;
     
     /**
      * @Constructor
      */
-    public function __construct(Array $args = array())
+    public function __construct()
     {
         // Find out exactly where this file is
         $realpath = realpath(dirname(__FILE__));
         
+        // Require JSMin and CSSMin
         require $realpath."/AssetPackager/JSMin.php";
         require $realpath."/AssetPackager/CssMin.php";
         
-        // Determine if we are being loaded by Codeigniter or standalone
-        if (function_exists("get_instance"))
+        if (is_null(self::$_CI))
         {
-            if (is_null(self::$_CI)) self::$_CI =& get_instance();
-            log_message('debug', 'Asset Packager: Library initialized.');
+            self::$_CI =& get_instance();
+        }
+
+        log_message('info', 'Asset Packager: Library initialized.');
+        
+        if( self::$_CI->config->load('assetpackager', TRUE, TRUE) ){
+        
+            log_message('info', 'Asset Packager: config loaded from config file.');
             
-            if( self::$_CI->config->load('assetpackager', TRUE, TRUE) ){
+            $config_file = self::$_CI->config->item('assetpackager');
             
-                log_message('debug', 'Asset Packager: config loaded from config file.');
-                
-                $config_file = self::$_CI->config->item('assetpackager');
-                
-                $this->_parseConfig($config_file);
-            }
-            else
-            {
-                log_message("error", "Asset Packager config file unable to load.");
-            }
+            $this->_parseConfig($config_file);
         }
         else
         {
-            $this->_parseConfig($args);
+            log_message("error", "Asset Packager config file unable to load.");
         }
         
         // Load up the default group
@@ -119,37 +220,29 @@ class Assetpackager
      * Parse Config File
      * 
      * @name _parseConfig
-     * @access Private
-     * @param Array  configuration array
-     * @return Void
+     * @access private
+     * @param $config Configuration array defined in /config/assetpackager.php
      */
     private function _parseConfig(Array $config = array())
     {
         // Set some defaults in case they don't pass anything. 
         $defaults = array(
-            "base_url"      => "",
-            "base_path"     => "",
+            "base_url"          => "",
+            "base_path"         => "",
             
-            "asset_dir"     => "",
-            "script_dir"    => "scripts",
-            "script_view_dir" => "scripts/views",
-            "style_dir"     => "styles",
-            "cache_dir"     => "cache",
+            "asset_dir"         => "",
+            "script_dir"        => "scripts",
+            "script_view_dir"   => "scripts/views",
+            "style_dir"         => "styles",
+            "cache_dir"         => "cache",
             
-            "dev"           => FALSE,
-            "combine"       => TRUE,
+            "dev"               => FALSE,
+            "combine"           => TRUE,
             
             "minify_scripts"    => TRUE,
             "minify_styles"     => TRUE,
-            "force_curl"        => FALSE,
-            
-            "error_callback"    => NULL  
+            "force_curl"        => FALSE
         );
-        
-        // If they tried to define an invalid error_callback method, DIE!
-        if (!is_null(self::$_CI) && isset($args['error_callback']) && !is_null($args['error_callback']) && !is_callable($args['error_callback'])) {
-            die("Specified error_callback variable is not a callable function.  If you do not want error handling, either leave \"error_callback\" out of your construct arguments or pass it in as \"NULL\"");
-        }
         
         // Loop through the configuration file to get our settings, skipping the Groups for now.
         foreach ($defaults as $k=>$v)
@@ -216,8 +309,7 @@ class Assetpackager
             }
         }
         
-        if (!is_null(self::$_CI))
-            log_message('debug', 'Asset Packager: library configured.');
+        log_message('debug', 'Asset Packager: library configured.');
     }
     
     /**
@@ -227,7 +319,7 @@ class Assetpackager
      * to allow that object access to these values.
      * 
      * @name _getConfig
-     * @access Private
+     * @access private
      */
     private function _getConfig()
     {
@@ -238,7 +330,7 @@ class Assetpackager
                 "base_path"     => $this->base_path,
                 
                 "asset_path"    => $this->asset_path,
-                "asset_url"     => $this->_asset_url,
+                "asset_url"     => $this->asset_url,
 
                 "script_dir"    => $this->script_dir,
                 "script_url"    => $this->script_url,
@@ -276,13 +368,34 @@ class Assetpackager
      * Add Script View File
      * 
      * @name addScriptViewFile
-     * @access Public
-     * @param String $filename
+     * @access public
+     * @param Array $params
      * @return VOID
      */
-    public function addScriptViewFile($filename)
+    public function addScriptViewFile(Array $params)
     {
-        $asset = new \AssetPackager\Asset\View($this->_getConfig(), $filename);
+        $defaults = array(
+            "dev_file" => "",
+            "prod_file" => "",
+            "minify" => TRUE,
+            "cache" => TRUE,
+            "name" => "",
+            "group" => array("default"),
+            "requires" => array()
+        );
+
+        // Sanitize our parameters
+        foreach($defaults as $k=>$v)
+        {
+            if (!isset($params[$k]))
+            {
+                $params[$k] = $v;
+            }
+        }
+        
+        $params['minify'] = ($params['minify'] && $this->minify_scripts);
+
+        $asset = new \DCarbone\AssetPackager\Asset\View($this->_getConfig(), $params);
         
         if ($asset->valid === true)
         {
@@ -299,7 +412,7 @@ class Assetpackager
      * Add Normal Script File
      * 
      * @name addScriptFile
-     * @access Public
+     * @access public
      * @param Array $params
      * @return void
      */
@@ -326,7 +439,7 @@ class Assetpackager
         
         $params['minify'] = ($params['minify'] && $this->minify_scripts);
         
-        $asset = new \AssetPackager\Asset\Script($this->_getConfig(), $params);
+        $asset = new \DCarbone\AssetPackager\Asset\Script($this->_getConfig(), $params);
         
         if ($asset->valid === true)
         {
@@ -361,7 +474,7 @@ class Assetpackager
      * Add Style File
      * 
      * @name addStyleFile
-     * @access Public
+     * @access public
      * @param Array $params
      * @return void
      */
@@ -398,7 +511,7 @@ class Assetpackager
             $params['group'] = array($params['group']);
         }
         
-        $asset = new \AssetPackager\Asset\Style($this->_getConfig(), $params);
+        $asset = new \DCarbone\AssetPackager\Asset\Style($this->_getConfig(), $params);
         
         if ($asset->valid === true)
         {
@@ -432,7 +545,7 @@ class Assetpackager
      * Add Asset Group
      * 
      * @name addAssetGroup
-     * @access Public
+     * @access public
      * @param String  name of group
      * @param Array  array of script files
      * @param Array  array of style files
@@ -440,12 +553,22 @@ class Assetpackager
      * @param Array  script views to require with this group
      * @return VOID
      */
-    public function addAssetGroup($group_name = "", Array $scripts = array(), Array $styles = array(), Array $include_groups = array(), Array $views = array())
+    public function addAssetGroup(
+        $group_name = "",
+        Array $scripts = array(),
+        Array $styles = array(),
+        Array $include_groups = array(),
+        Array $views = array())
     {
         // Determine if this is a new group or adding to one that already exists;
         if (!array_key_exists($group_name, $this->_groups))
         {
-            $this->_groups[$group_name] = array("scripts" => array(), "styles" => array(), "groups" => array(), "views" => array());
+            $this->_groups[$group_name] = array(
+                "scripts" => array(),
+                "styles" => array(),
+                "groups" => array(),
+                "views" => array()
+            );
         }
         
         // If this group requires another group...
@@ -456,13 +579,12 @@ class Assetpackager
             $this->_groups[$group_name]['groups'] = $unique;
         }
         
-        
         // If this group requires any script views
         if (count($views) > 0)
         {
             foreach($views as $view)
             {
-                $this->addScriptViewFile($view);
+                $this->addScriptViewFile(array("group" => $group_name, "dev_file" => $view));
             }
             $this->_groups[$group_name]['views'] = $views;
         }
@@ -533,7 +655,7 @@ class Assetpackager
      * Load Scripts for output
      * 
      * @name loadScripts
-     * @access Public
+     * @access public
      * @param Mixed  string or array of script files to load
      * @return Mixed
      */
@@ -565,7 +687,7 @@ class Assetpackager
      * Load Script Views for Output
      * 
      * @name loadScriptViews
-     * @access Public
+     * @access public
      * @param Mixed  string or array of script view files to load
      * @return Mixed
      */
@@ -599,7 +721,7 @@ class Assetpackager
      * Load Style Files for output
      * 
      * @name loadStyles
-     * @access Public
+     * @access public
      * @param Mixed  string or array of script views to load
      * @return Mixed
      */
@@ -630,7 +752,7 @@ class Assetpackager
      * Load Asset Group for Output
      * 
      * @name loadGroups
-     * @access Public
+     * @access public
      * @param Mixed  string or array of groups to load for output
      * @return Mixed
      */
@@ -728,7 +850,7 @@ class Assetpackager
      * Generate Complex Output
      * 
      * @name _generateComplexOutput
-     * @access Private
+     * @access private
      * @param Array  array of styles to output
      * @param Array  array of scripts to output
      */
@@ -763,7 +885,7 @@ class Assetpackager
             }
         }
         
-        $complex = new \AssetPackager\Complex($_styles, $_scripts, $this->_getConfig());
+        $complex = new \DCarbone\AssetPackager\Complex($_styles, $_scripts, $this->_getConfig());
         
         if ($this->styles_output === false)
         {
@@ -790,7 +912,7 @@ class Assetpackager
      * Generate Style tag Output
      * 
      * @name _outputStyles
-     * @access Private
+     * @access private
      * @param Array  array of styles to output
      * @return String  html style elements
      */
@@ -799,7 +921,7 @@ class Assetpackager
         ob_start();
         foreach($styles as $style)
         {
-            if (array_key_exists($style, $this->_styles) && ($this->_styles[$style] instanceof \AssetPackager\Asset\Style) === true)
+            if (array_key_exists($style, $this->_styles) && ($this->_styles[$style] instanceof \DCarbone\AssetPackager\Asset\Style) === true)
             {
                 echo $this->_styles[$style]->getOutput();
                 echo "\n";
@@ -812,7 +934,7 @@ class Assetpackager
      * Generate Script tag Output
      * 
      * @name _outputScripts
-     * @access Private
+     * @access private
      * @param Array  array of scripts ot output
      * @return String  html script elements
      */
@@ -821,12 +943,12 @@ class Assetpackager
         ob_start();
         foreach($scripts as $script)
         {
-            if (array_key_exists($script, $this->_scripts) && ($this->_scripts[$script] instanceof \AssetPackager\Asset\Script) === true)
+            if (array_key_exists($script, $this->_scripts) && ($this->_scripts[$script] instanceof \DCarbone\AssetPackager\Asset\Script) === true)
             {
                 echo $this->_scripts[$script]->getOutput();
                 echo "\n";
             }
-            else if (array_key_exists($script, $this->_script_views) && ($this->_script_views[$script] instanceof \AssetPackager\Asset\View) === true)
+            else if (array_key_exists($script, $this->_script_views) && ($this->_script_views[$script] instanceof \DCarbone\AssetPackager\Asset\View) === true)
             {
                 echo $this->_script_views[$script]->getOutput();
                 echo "\n";
