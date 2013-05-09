@@ -45,8 +45,6 @@ class Complex
 
     private $_Cache_files = array();
 
-    private $_applicationMode = null;
-
     /**
      * Constructor
      *
@@ -57,8 +55,6 @@ class Complex
     public function __construct(Array $styles, Array $scripts, Array $config)
     {
         static::$CI =& get_instance();
-
-        $this->_applicationMode = static::$CI->router->get_application_mode();
 
         $this->_config = $config;
 
