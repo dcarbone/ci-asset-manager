@@ -246,19 +246,19 @@ class Manager
             static::$CI =& get_instance();
         }
 
-        log_message('info', 'Asset Packager: Library initialized.');
+        log_message('info', 'Asset Manager: Library initialized.');
 
-        if( static::$CI->config->Load('assetpackager', TRUE, TRUE) ){
+        if( static::$CI->config->Load('assetmanager', TRUE, TRUE) ){
 
-            log_message('info', 'Asset Packager: config Loaded from config file.');
+            log_message('info', 'Asset Manager: config Loaded from config file.');
 
-            $config_file = static::$CI->config->item('assetpackager');
+            $config_file = static::$CI->config->item('assetmanager');
 
             $this->_ParseConfig($config_file);
         }
         else
         {
-            log_message("error", "Asset Packager config file unable to Load.");
+            log_message("error", "Asset Manager config file unable to Load.");
         }
 
         // Load up the default group
@@ -270,7 +270,7 @@ class Manager
      *
      * @name _ParseConfig
      * @access protected
-     * @param $config Configuration array defined in /config/assetpackager.php
+     * @param $config Configuration array defined in /config/assetmanager.php
      */
     protected function _ParseConfig(Array $config = array())
     {
@@ -358,7 +358,7 @@ class Manager
             }
         }
 
-        log_message('debug', 'Asset Packager: library configured.');
+        log_message('debug', 'Asset Manager: library configured.');
     }
 
     /**
