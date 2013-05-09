@@ -1,12 +1,28 @@
-<?php namespace DCarbone\AssetPackager;
+<?php namespace DCarbone\AssetManager\Generics;
 
-/**
- * Abstract Asset Packager Asset class
- * 
- * @version 1.0
- * @author Daniel Carbone (daniel.p.carbone@gmail.com)
- * 
+use \DateTime;
+use \DateTimeZone;
+
+use \DCarbone\AssetManager\Manager;
+
+/*
+    XMLWriter Class for PHP
+    Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 abstract class Asset
 {
     /**
@@ -14,10 +30,10 @@ abstract class Asset
      * @var boolean
      */
     public $valid = true;
-    
+
     /**
      * DateTimeZone object
-     * @var \DateTimeZone
+     * @var DateTimeZone
      */
     protected static $dateTimeZone = NULL;
 
@@ -26,19 +42,19 @@ abstract class Asset
      * @var string
      */
     public $extension = NULL;
-    
+
     /**
      * The groups this asset belongs to
      * @var array
      */
     public $group = array();
-    
+
     /**
      * Is asset cacheable
      * @var boolean
      */
     public $cache = true;
-    
+
     /**
      * Dev File Name
      * @var String
@@ -48,12 +64,12 @@ abstract class Asset
      * Dev Cache File Name
      * @var String
      */
-    public $dev_cache_file = null;
+    public $dev_Cache_file = null;
     /**
      * Dev Minified Cache File Name
      * @var String
      */
-    public $dev_cache_file_min = null;
+    public $dev_Cache_file_min = null;
 
     /**
      * Production File Name
@@ -64,19 +80,19 @@ abstract class Asset
      * Production Cache File Name
      * @var String
      */
-    public $prod_cache_file = null;
+    public $prod_Cache_file = null;
     /**
      * Production Minified Cache File Name
      * @var String
      */
-    public $prod_cache_file_min = null;
-    
+    public $prod_Cache_file_min = null;
+
     /**
      * Can this asset be minified
      * @var boolean
      */
     public $minify = true;
-    
+
     /**
      * Name of asset
      * @var String
@@ -98,7 +114,7 @@ abstract class Asset
      * @var String
      */
     public $dev_file_name = null;
-    
+
     /**
      * Production File Path
      * @var String
@@ -114,15 +130,15 @@ abstract class Asset
      * @var String
      */
     public $prod_file_name = null;
-    
+
     /**
      * Last Modified Date for Dev File
-     * @var \DateTime
+     * @var DateTime
      */
     public $dev_last_modified = null;
     /**
      * Last Modified Date for Prod File
-     * @var \DateTime
+     * @var DateTime
      */
     public $prod_last_modified = null;
 
@@ -142,67 +158,67 @@ abstract class Asset
      * @var boolean
      */
     public $prod_is_remote = false;
-   
+
     /**
-     * AssetPackager Configuration
+     * AssetManager Configuration
      * @var Array
      */
     protected $_config = array();
-    
+
     /**
      * CodeIgniter Instance
      * @var Object
      */
-    protected static $_CI = null;
-    
+    protected static $CI = null;
+
     /**
      * Constructor
      */
     public function __construct(Array $config, Array $args)
     {
-        self::$dateTimeZone = new \DateTimeZone("UTC");
-        
+        (static::$dateTimeZone instanceof DateTimeZone) OR static::$dateTimeZone = new DateTimeZone("UTC");
+
         $this->_config = $config;
-        $this->_parseArgs($args);
-        $this->valid = $this->_validate();
-        
+        $this->ParseArgs($args);
+        $this->valid = $this->Validate();
+
         if ($this->valid === true)
         {
-            if (is_null(self::$_CI)) self::$_CI = &get_instance();
+            if (static::$CI === null) static::$CI = &get_instance();
         }
     }
-    
+
     /**
      * Parse Arguments
-     * 
-     * @name _parseArgs
+     *
+     * @name ParseArgs
      * @access protected
      * @param Array  arguments
      * @return Void
      */
-    protected function _parseArgs(Array $args = array())
+    protected function ParseArgs(Array $args = array())
     {
         foreach($args as $k=>$v)
         {
             $this->$k = $v;
         }
     }
-    
+
     /**
      * Input Validation
-     * 
-     * @name _validate
+     *
+     * @name Validate
      * @access protected
      * @return Boolean
      */
-    protected function _validate()
+    protected function Validate()
     {
         if ($this->dev_file === "" && $this->prod_file === "")
         {
-            $this->_failure(array('details' => "You have tried to add an asset to Asset Packager with undefined \"\$dev_file\" and \"\$prod_file\" values!"));
+            $this->_failure(array('details' => "You have tried to Add an asset to Asset Packager with undefined \"\$dev_file\" and \"\$prod_file\" values!"));
             return false;
         }
-        
+
         if ($this->dev_file === "")
         {
             $this->dev_file_path = false;
@@ -210,10 +226,10 @@ abstract class Asset
         }
         else
         {
-            if ($this->_fileExists($this->dev_file, 'dev'))
+            if ($this->FileExists($this->dev_file, 'dev'))
             {
-                $this->dev_file_path = $this->_getFilePath($this->dev_file);
-                $this->dev_file_url = $this->_getFileUrl($this->dev_file);
+                $this->dev_file_path = $this->GetFilePath($this->dev_file);
+                $this->dev_file_url = $this->GetFileUrl($this->dev_file);
             }
             else
             {
@@ -221,7 +237,7 @@ abstract class Asset
                 return false;
             }
         }
-        
+
         if ($this->prod_file === "")
         {
             $this->prod_file_path = false;
@@ -229,10 +245,10 @@ abstract class Asset
         }
         else
         {
-            if ($this->_fileExists($this->prod_file, 'prod'))
+            if ($this->FileExists($this->prod_file, 'prod'))
             {
-                $this->prod_file_path = $this->_getFilePath($this->prod_file);
-                $this->prod_file_url = $this->_getFileUrl($this->prod_file);
+                $this->prod_file_path = $this->GetFilePath($this->prod_file);
+                $this->prod_file_url = $this->GetFileUrl($this->prod_file);
             }
             else
             {
@@ -242,163 +258,164 @@ abstract class Asset
         }
         return true;
     }
-    
+
     /**
      * Determines if this asset is locally cacheable
-     * 
-     * @name canBeCached
+     *
+     * @name CanBeCached
      * @access public
      * @return Bool
      */
-    public function canBeCached()
+    public function CanBeCached()
     {
         return $this->cache;
     }
-    
+
     /**
      * Determines if environment is "development"
-     * 
-     * @name isDev
+     *
+     * @name IsDev
      * @access public
      * @return Bool  dev or not
      */
-    public function isDev()
+    public function IsDev()
     {
         return $this->_config['dev'];
     }
-    
+
     /**
      * Determines if being run inside CodeIgniter application
-     * 
-     * @name isCI
+     *
+     * @name IsCI
      * @access public
      * @return Bool
      */
-    public function isCI()
+    public function IsCI()
     {
         return $this->_config['CI'];
     }
-    
+
     /**
      * Get Base URL from config
-     * 
-     * @name getBaseUrl
+     *
+     * @name GetBaseUrl
      * @access public
      * @return String  base url
      */
-    public function getBaseUrl()
+    public function GetBaseUrl()
     {
         return $this->_config['base_url'];
     }
-    
+
     /**
      * Get Base File path
-     * 
-     * @name getBasePath
+     *
+     * @name GetBasePath
      * @access public
      * @return String  base filepath
      */
-    public function getBasePath()
+    public function GetBasePath()
     {
         return $this->_config['base_path'];
     }
-    
+
     /**
      * Get Base Asset URL
-     * 
-     * @name getBaseAssetUrl
+     *
+     * @name GetBaseAssetUrl
      * @access public
      * @return String  asset url
      */
-    public function getBaseAssetUrl()
+    public function GetBaseAssetUrl()
     {
         return $this->_config['asset_url'];
     }
-    
+
     /**
      * Get Base Asset File Path
-     * 
-     * @name getBaseAssetPath
+     *
+     * @name GetBaseAssetPath
      * @access public
      * @return String  asset file path
      */
-    public function getBaseAssetPath()
+    public function GetBaseAssetPath()
     {
         return $this->_config['asset_path'];
     }
-    
+
     /**
      * Get Cache File Path
-     * 
-     * @name getCachePath
+     *
+     * @name GetCachePath
      * @access public
      * @return String  cache file path
      */
-    public function getCachePath()
+    public function GetCachePath()
     {
         return $this->_config['cache_path'];
     }
-    
+
     /**
      * Get Cache URL
-     * 
-     * @name getCacheUrl
+     *
+     * @name GetCacheUrl
      * @access public
      * @return String  cache url
      */
-    public function getCacheURL()
+    public function GetCacheURL()
     {
         return $this->_config['cache_url'];
     }
-    
+
     /**
      * Get Error Callback Function
-     * 
+     *
      * If this is not being run within CodeIgniter, the user can pass in a custom function that is
      * executed on error.
-     * 
-     * @name getErrorCallback
+     *
+     * @name GetErrorCallback
      * @access public
      * @return Mixed
      */
-    public function getErrorCallback()
+    public function GetErrorCallback()
     {
         return ((isset($this->_config['error_callback'])) ? $this->_config['error_callback'] : NULL);
     }
-    
+
     /**
      * Get Name of current asset
-     * 
-     * Wrapper method for getFileName
-     * 
-     * @name getName
+     *
+     * Wrapper method for GetFileName
+     *
+     * @name GetName
      * @access public
      * @return String  name of file
      */
-    public function getName()
+    public function GetName()
     {
-        if (is_null($this->name) || $this->name === "")
+        if ($this->name === null || $this->name === "")
         {
-            $this->name = $this->getFileName(false);
-            if ($this->name === "") $this->name = $this->getFileName(true);
+            $this->name = $this->GetFileName(false);
+            if ($this->name === "") $this->name = $this->GetFileName(true);
         }
-        
+
         return $this->name;
     }
-    
+
     /**
      * Get File Name of File
-     * 
-     * @name getFileName
+     *
+     * @name GetFileName
      * @access public
      * @param Bool  get dev file name
      * @return String  file name
      */
-    public function getFileName($dev = true)
+    public function GetFileName($dev = true)
     {
+
         if ($dev === true)
         {
-            if (is_null($this->dev_file_name))
+            if ($this->dev_file_name === null)
             {
                 $this->dev_file_name = "";
                 if ($this->dev_file !== "")
@@ -411,7 +428,7 @@ abstract class Asset
         }
         else
         {
-            if (is_null($this->prod_file_name))
+            if ($this->prod_file_name === null)
             {
                 $this->prod_file_name = "";
                 if ($this->prod_file !== "")
@@ -423,48 +440,48 @@ abstract class Asset
             return $this->prod_file_name;
         }
     }
-    
+
     /**
      * Get Date Modified for Asset
-     * 
-     * @name getDateModified
+     *
+     * @name GetDateModified
      * @access public
      * @param Bool  dev file
-     * @return \DateTime object
+     * @return DateTime object
      */
-    public function getDateModified($dev = false)
+    public function GetDateModified($dev = false)
     {
-        if (is_null($this->dev_last_modified) || is_null($this->prod_last_modified))
+        if ($this->dev_last_modified === null || $this->prod_last_modified === null)
         {
-            if (is_null($this->dev_file_path) || $this->dev_file_path === false)
+            if ($this->dev_file_path === null || $this->dev_file_path === false)
             {
                 $this->dev_last_modified = false;
             }
             else if ($this->dev_is_remote === false && is_string($this->dev_file_path))
             {
-                $this->dev_last_modified = new \DateTime("@".(string)filemtime($this->dev_file_path), self::$dateTimeZone);
+                $this->dev_last_modified = new DateTime("@".(string)filemtime($this->dev_file_path), static::$dateTimeZone);
             }
             else
             {
-                $this->dev_last_modified = new \DateTime("0:00:00 January 1, 1970 UTC");
+                $this->dev_last_modified = new DateTime("0:00:00 January 1, 1970 UTC");
             }
-            
-            if (is_null($this->prod_file_path) || $this->prod_file_path === false)
+
+            if ($this->prod_file_path === null || $this->prod_file_path === false)
             {
                 $this->prod_last_modified = false;
             }
             else if ($this->prod_is_remote === false && is_string($this->prod_file_path))
             {
-                $this->prod_last_modified = new \DateTime("@".(string)filemtime($this->prod_file_path), self::$dateTimeZone);
+                $this->prod_last_modified = new DateTime("@".(string)filemtime($this->prod_file_path), static::$dateTimeZone);
             }
             else
             {
-                $this->prod_last_modified = new \DateTime("0:00:00 January 1, 1970 UTC");
+                $this->prod_last_modified = new DateTime("0:00:00 January 1, 1970 UTC");
             }
         }
         if ($dev === false)
         {
-            if ($this->prod_last_modified instanceof \DateTime)
+            if ($this->prod_last_modified instanceof DateTime)
             {
                 return $this->prod_last_modified;
             }
@@ -481,40 +498,40 @@ abstract class Asset
 
     /**
      * Get Date Modified for Cached Asset File
-     * 
+     *
      * This differs from above in that there is no logic.  Find the path before executing.
-     * 
-     * @name getCachedDateModified
+     *
+     * @name GetCachedDateModified
      * @access public
      * @param String  cached filepath
-     * @return \DateTime object
+     * @return DateTime object
      */
-    public function getCachedDateModified($path)
+    public function GetCachedDateModified($path)
     {
-        return new \DateTime("@".filemtime($path), self::$dateTimeZone);
+        return new DateTime("@".filemtime($path), static::$dateTimeZone);
     }
-    
+
     /**
      * Get Groups of this asset
-     * 
-     * @name getGroups
+     *
+     * @name GetGroups
      * @access public
      * @return Array
      */
-    public function getGroups()
+    public function GetGroups()
     {
         return $this->group;
     }
-    
+
     /**
      * Is Asset In Group
-     * 
-     * @name inGroup
+     *
+     * @name InGroup
      * @access public
      * @param Mixed  array or strings of groups
      * @return Bool
      */
-    public function inGroup($group)
+    public function InGroup($group)
     {
         if(in_array($group, $this->group))
         {
@@ -522,18 +539,18 @@ abstract class Asset
         }
         return false;
     }
-    
+
     /**
      * Add Asset to group
-     * 
-     * @name addGroups
+     *
+     * @name AddGroups
      * @access public
-     * @param Mixed  array or string of group(s) to add asset to
+     * @param Mixed  array or string of group(s) to Add asset to
      * @return Void
      */
-    public function addGroups($groups)
+    public function AddGroups($groups)
     {
-        if (is_string($groups) && $groups !== "" && !$this->inGroup($groups))
+        if (is_string($groups) && $groups !== "" && !$this->InGroup($groups))
         {
             $this->group[] = $groups;
         }
@@ -541,19 +558,19 @@ abstract class Asset
         {
             foreach($groups as $group)
             {
-                $this->addGroups($group);
+                $this->AddGroups($group);
             }
         }
     }
-    
+
     /**
      * Get Assets required by this asset
-     * 
-     * @name getRequires
+     *
+     * @name GetRequires
      * @access public
      * @return Array
      */
-    public function getRequires()
+    public function GetRequires()
     {
         if (is_string($this->requires))
             return array($this->requires);
@@ -562,26 +579,26 @@ abstract class Asset
         else
             return array();
     }
-    
+
     /**
      * Get src for asset
-     * 
-     * @name getSrc
+     *
+     * @name GetSrc
      * @access public
      * @param Bool  src of dev
      * @return String
      */
-    public function getSrc($dev = true)
+    public function GetSrc($dev = true)
     {
-        if ($this->canBeCached())
+        if ($this->CanBeCached())
         {
-            $minify = (!$this->isDev() && $this->minify);
-            
-            $this->_createCache();
-            $url = $this->getCachedFileUrl($minify);
+            $minify = (!$this->IsDev() && $this->minify);
+
+            $this->CreateCache();
+            $url = $this->GetCachedFileUrl($minify);
             if ($url !== false) return $url;
         }
-        
+
         if ($dev === true)
         {
             return $this->dev_file_url;
@@ -591,37 +608,37 @@ abstract class Asset
             return $this->prod_file_url;
         }
     }
-    
+
     /**
      * Get File Version
-     * 
-     * @name getVer()
+     *
+     * @name GetVer()
      * @access public
      * @return String
      */
-    public function getVer()
+    public function GetVer()
     {
-        $file = (($this->isDev()) ? $this->dev_file_path : $this->prod_file_path);
-        if (is_null($file)) $file = $this->dev_file_path;
-        
+        $file = (($this->IsDev()) ? $this->dev_file_path : $this->prod_file_path);
+        if ($file === null ) $file = $this->dev_file_path;
+
         if (preg_match("#^(http://|https://|//)#i", $file))
         {
             return "?ver=19700101";
         }
-        
+
         return "?ver=".date("Ymd", filemtime($file));
     }
-    
+
     /**
      * Determine if File Exists
-     * 
-     * @name _fileExists
+     *
+     * @name FileExists
      * @access protected
      * @param String  file name
      * @param String  asset type
      * @return Bool
      */
-    protected function _fileExists($file, $type)
+    protected function FileExists($file, $type)
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
         {
@@ -632,180 +649,181 @@ abstract class Asset
             }
             return true;
         }
-        $filepath = $this->getAssetPath().$file;
-        
+        $filepath = $this->GetAssetPath().$file;
+
         if (!file_exists($filepath))
         {
             $this->_failure(array("details" => "Could not find file at \"{$filepath}\""));
             return false;
         }
-        
+
         if (!is_readable($filepath))
         {
             $this->_failure(array("details" => "Could not read asset file at \"{$filepath}\""));
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * Get fill url for cached file
-     * 
-     * @name getCachedFileUrl
+     *
+     * @name GetCachedFileUrl
      * @access public
      * @param Bool get url for minified version
      * @return Mixed
      */
-    public function getCachedFileUrl($minified = false)
+    public function GetCachedFileUrl($minified = false)
     {
-        if ($minified === false && $this->_cacheFileExists($minified))
+        if ($minified === false && $this->CacheFileExists($minified))
         {
-            return $this->getCacheUrl().$this->getName().".parsed.".$this->extension;
+            return $this->GetCacheUrl().Manager::$filePrependValue.$this->GetName().".parsed.".$this->extension;
         }
-        else if ($minified === true && $this->_cacheFileExists($minified))
+        else if ($minified === true && $this->CacheFileExists($minified))
         {
-            return $this->getCacheUrl().$this->getName().".parsed.min.".$this->extension;
+            return $this->GetCacheUrl().Manager::$filePrependValue.$this->GetName().".parsed.min.".$this->extension;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Get Full path for cached version of file
-     * 
-     * @name getCachedFilePath
+     *
+     * @name GetCachedFilePath
      * @access public
      * @param Bool  look for minified version
      * @return Mixed
      */
-    public function getCachedFilePath($minified = false)
+    public function GetCachedFilePath($minified = false)
     {
-        if ($minified === false && $this->_cacheFileExists($minified))
+        if ($minified === false && $this->CacheFileExists($minified))
         {
-            return $this->getCachePath().$this->getName().".parsed.".$this->extension;
+            return $this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.".$this->extension;
         }
-        else if ($minified === true && $this->_cacheFileExists($minified))
+        else if ($minified === true && $this->CacheFileExists($minified))
         {
-            return $this->getCachePath().$this->getName().".parsed.min.".$this->extension;
+            return $this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.min.".$this->extension;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Check of cache versions exists
-     * 
-     * @name _cacheFileExists
+     *
+     * @name CacheFileExists
      * @access protected
      * @param Bool  check for minified version
      * @return Bool
      */
-    protected function _cacheFileExists($minified = false)
+    protected function CacheFileExists($minified = false)
     {
-        $_parsed = $this->getCachePath().$this->getName().".parsed.".$this->extension;
-        $_parsed_minified = $this->getCachePath().$this->getName().".parsed.min.".$this->extension;
-        
+        $Parsed = $this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.".$this->extension;
+        $Parsed_minified = $this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.min.".$this->extension;
+
         if ($minified === false)
         {
-            if (!file_exists($_parsed))
+            if (!file_exists($Parsed))
             {
-                $this->_failure(array("details" => "Could not find file at \"{$_parsed}\""));
+                $this->_failure(array("details" => "Could not find file at \"{$Parsed}\""));
                 return false;
             }
-            
-            if (!is_readable($_parsed))
+
+            if (!is_readable($Parsed))
             {
-                $this->_failure(array("details" => "Could not read asset file at \"{$_parsed}\""));
+                $this->_failure(array("details" => "Could not read asset file at \"{$Parsed}\""));
                 return false;
             }
         }
         else
         {
-            if (!file_exists($_parsed_minified))
+            if (!file_exists($Parsed_minified))
             {
-                $this->_failure(array("details" => "Could not find file at \"{$_parsed_minified}\""));
+                $this->_failure(array("details" => "Could not find file at \"{$Parsed_minified}\""));
                 return false;
             }
-            
-            if (!is_readable($_parsed_minified))
+
+            if (!is_readable($Parsed_minified))
             {
-                $this->_failure(array("details" => "Could not read asset file at \"{$_parsed_minified}\""));
+                $this->_failure(array("details" => "Could not read asset file at \"{$Parsed_minified}\""));
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     /**
      * Create Cached versions of asset
-     * 
-     * @name _createCache
+     *
+     * @name CreateCache
      * @access protected
      * @return Bool
      */
-    protected function _createCache()
+    protected function CreateCache()
     {
-        if ($this->canBeCached() === false)
+        if ($this->CanBeCached() === false)
         {
             return;
         }
-        
-        $_create_parsed_cache = false;
-        $_create_parsed_min_cache = false;
-        
-        $modified = $this->getDateModified($this->isDev());
-        
-        $parsed = $this->getCachedFilePath(false);
-        $parsed_min = $this->getCachedFilePath(true);
-        
+
+        $_createParsed_Cache = false;
+        $_createParsed_min_Cache = false;
+
+        $modified = $this->GetDateModified($this->IsDev());
+
+        $parsed = $this->GetCachedFilePath(false);
+        $parsed_min = $this->GetCachedFilePath(true);
+
         if ($parsed !== false)
         {
-            $parsed_modified = $this->getCachedDateModified($parsed);
-            if ($parsed_modified instanceof \DateTime)
+            $parsed_modified = $this->GetCachedDateModified($parsed);
+            if ($parsed_modified instanceof DateTime)
             {
                 if ($modified > $parsed_modified)
                 {
-                    $_create_parsed_cache = true;
+                    $_createParsed_Cache = true;
                 }
             }
             else
             {
-                $_create_parsed_cache = true;
+                $_createParsed_Cache = true;
             }
         }
         else
         {
-            $_create_parsed_cache = true;
+            $_createParsed_Cache = true;
         }
-        
+
         if ($parsed_min !== false)
         {
-            $parsed_modified = $this->getCachedDateModified($parsed_min);
-            if ($parsed_modified instanceof \DateTime)
+            $parsed_modified = $this->GetCachedDateModified($parsed_min);
+            if ($parsed_modified instanceof DateTime)
             {
                 if ($modified > $parsed_modified)
                 {
-                    $_create_parsed_min_cache = true;
+                    $_createParsed_min_Cache = true;
                 }
             }
             else
             {
-                $_create_parsed_min_cache = true;
+                $_createParsed_min_Cache = true;
             }
         }
         else
         {
-            $_create_parsed_min_cache = true;
+            $_createParsed_min_Cache = true;
         }
-        
-        if ($_create_parsed_cache === false && $_create_parsed_min_cache === false)
+
+        // If we do not have to create any cache files.
+        if ($_createParsed_Cache === false && $_createParsed_min_Cache === false)
         {
             return true;
         }
-        
-        if ($this->prod_file_path !== false && !is_null($this->prod_file_path))
+
+        if ($this->prod_file_path !== false && $this->prod_file_path !== null)
         {
             $ref = $this->prod_file_path;
             $remote = $this->prod_is_remote;
@@ -815,7 +833,7 @@ abstract class Asset
             $ref = $this->dev_file_path;
             $remote = $this->dev_is_remote;
         }
-        
+
         if($remote || $this->_config['force_curl'])
         {
             $ch = curl_init($ref);
@@ -830,99 +848,99 @@ abstract class Asset
         {
             $contents = file_get_contents($ref);
         }
-        
+
         // If there was some issue getting the contents of the file
         if (!is_string($contents) || $contents === false)
         {
             $this->_failure(array("details" => "Could not get file contents for \"{$ref}\""));
             return false;
         }
-        
-        $contents = $this->_parse($contents);
 
-        if ($_create_parsed_min_cache === true)
+        $contents = $this->Parse($contents);
+
+        if ($_createParsed_min_Cache === true)
         {
             // If we successfully got the file's contents
-            $minified = $this->_minify($contents);
-            
-            $min_fopen = fopen($this->getCachePath().$this->getName().".parsed.min.".$this->extension, "w");
-            
+            $minified = $this->Minify($contents);
+
+            $min_fopen = fopen($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.min.".$this->extension, "w");
+
             if ($min_fopen === false)
             {
                 return false;
             }
             fwrite($min_fopen, $minified."\n");
             fclose($min_fopen);
-            chmod($this->getCachePath().$this->getName().".parsed.min.".$this->extension, 0644);
+            chmod($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.min.".$this->extension, 0644);
         }
-        
-        if ($_create_parsed_cache === true)
+
+        if ($_createParsed_Cache === true)
         {
 $comment = <<<EOD
 /*
 |--------------------------------------------------------------------------
-| {$this->getName()}
+| {$this->GetName()}
 |--------------------------------------------------------------------------
-| Last Modified : {$this->getDateModified()->format("Y m d")}
+| Last Modified : {$this->GetDateModified()->format("Y m d")}
 */
 EOD;
-            $parsed_fopen = fopen($this->getCachePath().$this->getName().".parsed.".$this->extension, "w");
-            
+            $parsed_fopen = fopen($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.".$this->extension, "w");
+
             if ($parsed_fopen === false)
             {
                 return false;
             }
             fwrite($parsed_fopen, $comment.$contents."\n");
             fclose($parsed_fopen);
-            chmod($this->getCachePath().$this->getName().".parsed.".$this->extension, 0644);
+            chmod($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.".$this->extension, 0644);
         }
         return true;
     }
 
-    
+
     /**
      * Get Contents for use
-     * 
-     * @name getContents
+     *
+     * @name GetContents
      * @access public
      * @return String  asset file contents
      */
-    public function getContents()
+    public function GetContents()
     {
-        if ($this->canBeCached())
+        if ($this->CanBeCached())
         {
-            return $this->_getCachedContents();
+            return $this->GetCachedContents();
         }
         else
         {
-            return $this->_getContents();
+            return $this->_GetContents();
         }
     }
-    
+
     /**
      * Get Contents of Cached Asset
-     * 
+     *
      * Attempts to return contents of cached equivalent of file.
      * If unable, returns normal content;
-     * 
-     * @name _getCachedContents
+     *
+     * @name GetCachedContents
      * @access protected
      * @param Bool  get minified version
      * @return String
      */
-    protected function _getCachedContents()
+    protected function GetCachedContents()
     {
-        $cached = $this->_createCache();
-        
+        $cached = $this->CreateCache();
+
         if ($cached === true)
         {
-            $minify = (!$this->isDev() && $this->minify);
-            
-            $path = $this->getCachedFilePath($minify);
-            
+            $minify = (!$this->IsDev() && $this->minify);
+
+            $path = $this->GetCachedFilePath($minify);
+
             if ($path === false)
             {
-                return $this->_getContents();
+                return $this->_GetContents();
             }
             else
             {
@@ -933,22 +951,22 @@ EOD;
                 }
                 else
                 {
-                    $this->_getContents();
+                    return $this->_GetContents();
                 }
             }
         }
     }
-    
+
     /**
      * Get Asset File Contents
-     * 
-     * @name _getContents
-     * @access protected
+     *
+     * @name _GetContents
+     * @access private
      * @return String;
      */
-    protected function _getContents()
+    private function _GetContents()
     {
-        if ($this->prod_file_path !== false && !is_null($this->prod_file_path))
+        if ($this->prod_file_path !== false && $this->prod_file_path !== null)
         {
             $ref = $this->prod_file_path;
             $remote = $this->prod_is_remote;
@@ -958,7 +976,7 @@ EOD;
             $ref = $this->dev_file_path;
             $remote = $this->dev_is_remote;
         }
-        
+
         if($remote || $this->_config['force_curl'])
         {
             $ch = curl_init($ref);
@@ -973,37 +991,37 @@ EOD;
         {
             $contents = file_get_contents($ref);
         }
-        
+
         // If there was some issue getting the contents of the file
         if (!is_string($contents) || $contents === false)
         {
             $this->_failure(array("details" => "Could not get file contents for \"{$ref}\""));
             return false;
         }
-        
-        $contents = $this->_parse($contents);
-        
+
+        $contents = $this->Parse($contents);
+
         return $contents;
     }
-    
+
     /**
      * Error Handling
-     * 
+     *
      * @name _failure
      * @access protected
      * @return Bool  False
      */
     protected function _failure(Array $args = array())
     {
-        if ($this->isCI())
+        if ($this->IsCI())
         {
             log_message("error", "Asset Manager: \"{$args['details']}\"");
             return false;
         }
         else
         {
-            $callback = $this->getErrorCallback();
-            if (!is_null($callback) && is_callable($callback))
+            $callback = $this->GetErrorCallback();
+            if ($this->callback !== null && is_callable($callback))
             {
                 $callback($args);
                 return false;
@@ -1014,29 +1032,29 @@ EOD;
             }
         }
     }
-    
+
     /**
-    * isURL
-    * Checks if the provided string is a URL. Allows for port, path and query string validations.  
-    * This should probably be moved into a helper file, but I hate to add a whole new file for 
+    * IsUrl
+    * Checks if the provided string is a URL. Allows for port, path and query string validations.
+    * This should probably be moved into a helper file, but I hate to Add a whole new file for
     * one little 2-line function.
     * @access   public
     * @param    string to be checked
     * @return   boolean Returns TRUE/FALSE
     */
-    public static function isURL($string)
+    public static function IsUrl($string)
     {
         $pattern = '@(https?://([-\w\.]+)+(:\d+)?(/([\w/_\.]*(\?\S+)?)?)?)@';
         return preg_match($pattern, $string);
     }
-    
+
     // These methods must be defined in the child concrete classes
-    abstract protected function _getFilePath($file);
-    abstract protected function _getFileUrl($file);
-    abstract protected function _parse($data);
-    abstract protected function _minify($data);
-    
-    abstract public function getOutput();
-    abstract public function getAssetPath();
-    abstract public function getAssetUrl();
+    abstract protected function GetFilePath($file);
+    abstract protected function GetFileUrl($file);
+    abstract protected function Parse($data);
+    abstract protected function Minify($data);
+
+    abstract public function GetOutput();
+    abstract public function GetAssetPath();
+    abstract public function GetAssetUrl();
 }

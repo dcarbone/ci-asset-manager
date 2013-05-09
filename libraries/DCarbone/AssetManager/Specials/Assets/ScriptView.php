@@ -1,46 +1,65 @@
-<?php namespace DCarbone\AssetPackager\Asset;
+<?php namespace DCarbone\AssetManager\Specials\Assets;
 
-/**
- * Asset Packager Script View Asset class
- * 
- * @version 1.0
- * @author Daniel Carbone (daniel.p.carbone@gmail.com)
- * 
+use \DateTime;
+use \DateTimeZone;
+
+use \DCarbone\AssetManager\Manager;
+
+use \CssMin;
+use \JSMin;
+use \DCarbone\AssetManager\Generics\Asset;
+
+/*
+    ScriptView Asset Class for AssetManager Library
+    Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
-class View extends \DCarbone\AssetPackager\Asset
+
+class ScriptView extends Asset
 {
     /**
      * @Constructor
-     * 
+     *
      * @param Array $config
      * @param Array $args
      */
     public function __construct(Array $config, Array $args)
     {
         parent::__construct($config, $args);
-        $this->extension = "js";
+        $this->extension = Manager::$scriptFileExtension;
     }
-    
+
     /**
      * File Validation
-     * 
+     *
      * @override
-     * @name _validate
+     * @name Validate
      * @access protected
      * @return Boolean
      */
-    protected function _validate()
+    protected function Validate()
     {
         if(!is_string($this->dev_file) || (is_string($this->dev_file) && $this->dev_file === ""))
         {
             $this->_failure(array("details" => "View filename must be a non-empty String!"));
             return false;
         }
-        
-        if ($this->_fileExists($this->dev_file))
+
+        if ($this->FileExists($this->dev_file))
         {
-            $this->file_path = $this->_getFilePath($this->dev_file);
+            $this->file_path = $this->GetFilePath($this->dev_file);
         }
         else
         {
@@ -48,22 +67,22 @@ class View extends \DCarbone\AssetPackager\Asset
         }
         return true;
     }
-    
+
     /**
      * Get File Name
-     * 
-     * @override
+     *
+     * @Override
      * @access public
      * @return Mixed  Filename or False
-     * 
-     * This differs from the standard getFileName
+     *
+     * This differs from the standard GetFileName
      * in that it utilizes $this->dev_file rather than
      * $this->dev_file or $this->prod_file, as views
      * do not have a dev / prod difference
      */
-    public function getFileName($dev = true)
+    public function GetFileName($dev = true)
     {
-        if (is_null($this->dev_file))
+        if ($this->dev_file === null)
         {
             if ($this->dev_file !== "")
             {
@@ -73,21 +92,21 @@ class View extends \DCarbone\AssetPackager\Asset
         }
         return $this->dev_file;
     }
-    
+
     /**
      * Check if File Exists
-     * 
+     *
      * Script Views should never be remote
      * $type is not used for Views
-     * 
+     *
      * @Override
-     * @name _fileExists
+     * @name FileExists
      * @access protected
      * @param String  file name
      * @param String  asset type
      * @return Bool
      */
-    protected function _fileExists($file, $type = "dev")
+    protected function FileExists($file, $type = "dev")
     {
         // Views should never be remote resources
         if (preg_match("#^(http|//)#i", $file))
@@ -95,300 +114,277 @@ class View extends \DCarbone\AssetPackager\Asset
             $this->_failure(array("details" => "Script views cannot be remote files!"));
             return false;
         }
-        
-        $filepath = $this->getAssetPath().$file;
+
+        $filepath = $this->GetAssetPath().$file;
         if (!file_exists($filepath))
         {
             $this->_failure(array("details" => "Could not find script view file at \"{$filepath}\" (views cannot be remote files)"));
             return false;
         }
-        
+
         if (!is_readable($filepath))
         {
             $this->_failure(array("details" => "Could not read script view file at \"{$filepath}\""));
             return false;
         }
-        
+
         return true;
     }
 
     /**
      * Get Asset Path for specific asset
-     * 
-     * @name getAssetPath
+     *
+     * @name GetAssetPath
      * @access public
      * @return String
      */
-    public function getAssetPath()
+    public function GetAssetPath()
     {
         return $this->_config['script_view_path'];
     }
-    
+
     /**
      * Get Full Filepath for asset
-     * 
-     * @name _getFilePath
+     *
+     * @name GetFilePath
      * @access protected
      * @param String  file name
      * @return String  file path
      */
-    protected function _getFilePath($file = "")
+    protected function GetFilePath($file = "")
     {
-        return $filepath = $this->getAssetPath().$file;
+        return $filepath = $this->GetAssetPath().$file;
     }
-    
+
     /**
      * Get Asset Url for specific asset
-     * 
+     *
      * @Override
-     * @name getAssetUrl
+     * @name GetAssetUrl
      * @access public
      * @return String  asset url
      */
-    public function getAssetUrl()
+    public function GetAssetUrl()
     {
         return $this->_config['script_view_url'];
     }
-    
+
     /**
      * Get <script src=""> attribute for asset
-     * 
+     *
      * @override
-     * @name getSrc
+     * @name GetSrc
      * @access public
      * @param Boolean  is envirnment development
      * @return String  src string for file
      */
-    public function getSrc($dev = true)
+    public function GetSrc($dev = true)
     {
-        if ($this->canBeCached())
+        if ($this->CanBeCached())
         {
-            $minify = (!$this->isDev() && $this->minify);
-            $this->_createCache();
-            $url = $this->getCachedFileUrl($minify);
-            
-            
+            $minify = (!$this->IsDev() && $this->minify);
+            $this->CreateCache();
+            $url = $this->GetCachedFileUrl($minify);
+
             if ($url !== false) return $url;
         }
-        return $this->_getFileUrl($this->dev_file);
+        return $this->GetFileUrl($this->dev_file);
     }
-    
+
     /**
      * Get File Url
-     * 
-     * @name _getFileUrl
+     *
+     * @name GetFileUrl
      * @access protected
      * @param String  filename
      * @return String  full url with file
      */
-    protected function _getFileUrl($file = "")
+    protected function GetFileUrl($file = "")
     {
-        return $filepath = $this->getAssetUrl().$file;
+        return $filepath = $this->GetAssetUrl().$file;
     }
-    
+
     /**
      * Get datemodified version
-     * 
+     *
      * @override
-     * @name getVer
+     * @name GetVer
      * @access public
      * @return String  version appendage
      */
-    public function getVer()
+    public function GetVer()
     {
         $file = $this->file_path;
-        
+
         return "?ver=".date("Ymd", filemtime($file));
     }
-    
-    public function getOutput()
+
+    public function GetOutput()
     {
-        $output = "<script type='text/javascript' language='javascript'";
-        $output .= " src='".$this->getSrc($this->isDev()).$this->getVer()."'";
-        $output .= "></script>";
-        return $output;
+        $Output = "<script type='text/javascript' language='javascript'";
+        $Output .= " src='".$this->GetSrc($this->IsDev()).$this->GetVer()."'";
+        $Output .= "></script>";
+        return $Output;
     }
-    
-    
-    public function getDateModified($dev = true)
+
+
+    public function GetDateModified($dev = true)
     {
-        if (is_null($this->dev_last_modified))
+        if ($this->dev_last_modified === null)
         {
-            $zone = new \DateTimeZone("UTC");
-            
-            $this->dev_last_modified = new \DateTime("@".(string)filemtime($this->file_path), $zone);
+            $zone = new DateTimeZone("UTC");
+
+            $this->dev_last_modified = new DateTime("@".(string)filemtime($this->file_path), $zone);
         }
         return $this->dev_last_modified;
     }
-    
+
     /**
      * Minify Asset Data
-     * 
+     *
      * @Override
-     * @name _minify
+     * @name Minify
      * @access protected
      * @param String  file contents
      * @return String  minified file contents
      */
-    protected function _minify($data)
+    protected function Minify($data)
     {
-        return \JSMin::minify($data);
+        return JSMin::minify($data);
     }
-    
+
     /**
      * Parse Asset File and replace key markers
-     * 
-     * @name _parse
+     *
+     * @name Parse
      * @access protected
      * @param String  file contents
      * @return String  parsed file contents
      */
-    protected function _parse($data)
+    protected function Parse($data)
     {
-        $replace_keys = array(
-            "{baseURL}",
-#            "{currentURL}",
-#            "{escapeCurrentURL}",
-            "{assetURL}",
-            "{environment}",
-            "{debug}"
-        );
-/*    Current URL not currently enabled.
-        $current_url = str_replace(array("/index.php/preview", "index.php/"), "", current_url());
-        //$url .= "?session_id=".$this->session->userdata("session_id");
-        
-        $qs = $this->input->server("QUERY_STRING");
-        
-        if ($qs !== false) $current_url .= "?{$qs}";
-*/        
-        $replace_with = array(
-            base_url(),
-#            $current_url,
-#            urlencode($current_url),
-            str_replace(array("http:", "https:"), "", $this->_config['asset_url']),
-            ((defined("ENVIRONMENT")) ? strtolower(constant("ENVIRONMENT")) : "production"),
-            ((defined("ENVIRONMENT") && constant("ENVIRONMENT") === "DEVELOPMENT") ? "true" : "false")
-        );
-        
-        return str_replace($replace_keys, $replace_with, $data);
+        $replace_keys = array_keys(Manager::$scriptBrackets);
+
+        $replace_values = array_values(Manager::$scriptBrackets);
+
+        return str_replace($replace_keys, $replace_values, $data);
     }
 
     /**
      * Create Cached versions of asset
-     * 
-     * @name _createCache
+     *
+     * @name CreateCache
      * @access protected
      * @return Bool
      */
-    protected function _createCache()
+    protected function CreateCache()
     {
-        if ($this->canBeCached() === false)
+        if ($this->CanBeCached() === false)
         {
             return;
         }
-        
-        $_create_parsed_cache = false;
-        $_create_parsed_min_cache = false;
-        
-        $modified = $this->getDateModified($this->isDev());
-        
-        $parsed = $this->getCachedFilePath(false);
-        $parsed_min = $this->getCachedFilePath(true);
-        
+
+        $_createParsed_Cache = false;
+        $_createParsed_min_Cache = false;
+
+        $modified = $this->GetDateModified($this->IsDev());
+
+        $parsed = $this->GetCachedFilePath(false);
+        $parsed_min = $this->GetCachedFilePath(true);
+
         if ($parsed !== false)
         {
-            $parsed_modified = $this->getCachedDateModified($parsed);
-            if ($parsed_modified instanceof \DateTime)
+            $parsed_modified = $this->GetCachedDateModified($parsed);
+            if ($parsed_modified instanceof DateTime)
             {
                 if ($modified > $parsed_modified)
                 {
-                    $_create_parsed_cache = true;
+                    $_createParsed_Cache = true;
                 }
             }
             else
             {
-                $_create_parsed_cache = true;
+                $_createParsed_Cache = true;
             }
         }
         else
         {
-            $_create_parsed_cache = true;
+            $_createParsed_Cache = true;
         }
-        
+
         if ($parsed_min !== false)
         {
-            $parsed_modified = $this->getCachedDateModified($parsed_min);
-            if ($parsed_modified instanceof \DateTime)
+            $parsed_modified = $this->GetCachedDateModified($parsed_min);
+            if ($parsed_modified instanceof DateTime)
             {
                 if ($modified > $parsed_modified)
                 {
-                    $_create_parsed_min_cache = true;
+                    $_createParsed_min_Cache = true;
                 }
             }
             else
             {
-                $_create_parsed_min_cache = true;
+                $_createParsed_min_Cache = true;
             }
         }
         else
         {
-            $_create_parsed_min_cache = true;
+            $_createParsed_min_Cache = true;
         }
-        
-        if ($_create_parsed_cache === false && $_create_parsed_min_cache === false)
+
+        if ($_createParsed_Cache === false && $_createParsed_min_Cache === false)
         {
             return true;
         }
-        
+
         $contents = file_get_contents($this->file_path);
-                
+
         // If there was some issue getting the contents of the file
         if (!is_string($contents) || $contents === false)
         {
             $this->_failure(array("details" => "Could not get file contents for \"{$ref}\""));
             return false;
         }
-        
-        $contents = $this->_parse($contents);
 
-        if ($_create_parsed_min_cache === true)
+        $contents = $this->Parse($contents);
+
+        if ($_createParsed_min_Cache === true)
         {
             // If we successfully got the file's contents
-            $minified = $this->_minify($contents);
-            
-            $min_fopen = fopen($this->getCachePath().$this->getName().".parsed.min.".$this->extension, "w");
-            
+            $minified = $this->Minify($contents);
+
+            $min_fopen = fopen($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.min.".$this->extension, "w");
+
             if ($min_fopen === false)
             {
                 return false;
             }
             fwrite($min_fopen, $minified."\n");
             fclose($min_fopen);
-            chmod($this->getCachePath().$this->getName().".parsed.min.".$this->extension, 0644);
+            chmod($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.min.".$this->extension, 0644);
         }
-        
-        if ($_create_parsed_cache === true)
+
+        if ($_createParsed_Cache === true)
         {
 $comment = <<<EOD
 /*
 |--------------------------------------------------------------------------
-| {$this->getName()}
+| {$this->GetName()}
 |--------------------------------------------------------------------------
-| Last Modified : {$this->getDateModified()->format("Y m d")}
+| Last Modified : {$this->GetDateModified()->format("Y m d")}
 */
 EOD;
-            $parsed_fopen = fopen($this->getCachePath().$this->getName().".parsed.".$this->extension, "w");
-            
+            $parsed_fopen = fopen($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.".$this->extension, "w");
+
             if ($parsed_fopen === false)
             {
                 return false;
             }
             fwrite($parsed_fopen, $comment.$contents."\n");
             fclose($parsed_fopen);
-            chmod($this->getCachePath().$this->getName().".parsed.".$this->extension, 0644);
+            chmod($this->GetCachePath().Manager::$filePrependValue.$this->GetName().".parsed.".$this->extension, 0644);
         }
         return true;
     }
 
 }
- 
