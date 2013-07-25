@@ -270,7 +270,7 @@ class Manager
      *
      * @name _ParseConfig
      * @access protected
-     * @param $config Configuration array defined in /config/assetmanager.php
+     * @param $config $config Configuration array defined in /config/assetmanager.php
      */
     protected function _ParseConfig(Array $config = array())
     {
@@ -610,11 +610,11 @@ class Manager
      *
      * @name AddAssetGroup
      * @access public
-     * @param String  name of group
-     * @param Array  array of script files
-     * @param Array  array of style files
-     * @param Array  array of groups to include with this group
-     * @param Array  script views to require with this group
+     * @param String  $group_name name of group
+     * @param Array  $scripts array of script files
+     * @param Array  $styles array of style files
+     * @param Array  $include_groups array of groups to include with this group
+     * @param Array  $views script views to require with this group
      * @return VOID
      */
     public function AddAssetGroup(
@@ -1041,7 +1041,7 @@ class Manager
             unset($medias['print']);
             unset($asset);
         }
-        echo ob_Get_clean();
+        echo ob_get_clean();
     }
 
     /**
@@ -1068,7 +1068,7 @@ class Manager
                 echo "\n";
             }
         }
-        echo ob_Get_clean();
+        echo ob_get_clean();
     }
 
 }

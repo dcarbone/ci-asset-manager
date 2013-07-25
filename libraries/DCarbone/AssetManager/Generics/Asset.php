@@ -6,7 +6,7 @@ use \DateTimeZone;
 use \DCarbone\AssetManager\Manager;
 
 /*
-    XMLWriter Class for PHP
+    Asset Class for AssetManager CodeIgniter Library
     Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
 
     This program is free software: you can redistribute it and/or modify
@@ -64,12 +64,12 @@ abstract class Asset
      * Dev Cache File Name
      * @var String
      */
-    public $dev_Cache_file = null;
+    public $dev_cache_file = null;
     /**
      * Dev Minified Cache File Name
      * @var String
      */
-    public $dev_Cache_file_min = null;
+    public $dev_cache_file_min = null;
 
     /**
      * Production File Name
@@ -80,12 +80,12 @@ abstract class Asset
      * Production Cache File Name
      * @var String
      */
-    public $prod_Cache_file = null;
+    public $prod_cache_file = null;
     /**
      * Production Minified Cache File Name
      * @var String
      */
-    public $prod_Cache_file_min = null;
+    public $prod_cache_file_min = null;
 
     /**
      * Can this asset be minified
@@ -193,7 +193,7 @@ abstract class Asset
      *
      * @name ParseArgs
      * @access protected
-     * @param Array  arguments
+     * @param Array  $args arguments
      * @return Void
      */
     protected function ParseArgs(Array $args = array())
@@ -215,7 +215,7 @@ abstract class Asset
     {
         if ($this->dev_file === "" && $this->prod_file === "")
         {
-            $this->_failure(array('details' => "You have tried to Add an asset to Asset Packager with undefined \"\$dev_file\" and \"\$prod_file\" values!"));
+            $this->_failure(array('details' => "You have tried to Add an asset to Asset Manager with undefined \"\$dev_file\" and \"\$prod_file\" values!"));
             return false;
         }
 
@@ -407,12 +407,11 @@ abstract class Asset
      *
      * @name GetFileName
      * @access public
-     * @param Bool  get dev file name
+     * @param Bool  $dev get dev file name
      * @return String  file name
      */
     public function GetFileName($dev = true)
     {
-
         if ($dev === true)
         {
             if ($this->dev_file_name === null)
@@ -446,7 +445,7 @@ abstract class Asset
      *
      * @name GetDateModified
      * @access public
-     * @param Bool  dev file
+     * @param Bool  $dev dev file
      * @return DateTime object
      */
     public function GetDateModified($dev = false)
@@ -503,7 +502,7 @@ abstract class Asset
      *
      * @name GetCachedDateModified
      * @access public
-     * @param String  cached filepath
+     * @param String  $path cached filepath
      * @return DateTime object
      */
     public function GetCachedDateModified($path)
@@ -585,7 +584,7 @@ abstract class Asset
      *
      * @name GetSrc
      * @access public
-     * @param Bool  src of dev
+     * @param Bool  $dev src of dev
      * @return String
      */
     public function GetSrc($dev = true)
@@ -634,8 +633,8 @@ abstract class Asset
      *
      * @name FileExists
      * @access protected
-     * @param String  file name
-     * @param String  asset type
+     * @param String  $file file name
+     * @param String  $type asset type
      * @return Bool
      */
     protected function FileExists($file, $type)
@@ -671,7 +670,7 @@ abstract class Asset
      *
      * @name GetCachedFileUrl
      * @access public
-     * @param Bool get url for minified version
+     * @param Bool $minified get url for minified version
      * @return Mixed
      */
     public function GetCachedFileUrl($minified = false)
@@ -693,7 +692,7 @@ abstract class Asset
      *
      * @name GetCachedFilePath
      * @access public
-     * @param Bool  look for minified version
+     * @param Bool  $minified look for minified version
      * @return Mixed
      */
     public function GetCachedFilePath($minified = false)
@@ -715,7 +714,7 @@ abstract class Asset
      *
      * @name CacheFileExists
      * @access protected
-     * @param Bool  check for minified version
+     * @param Bool  $minified check for minified version
      * @return Bool
      */
     protected function CacheFileExists($minified = false)
@@ -766,7 +765,7 @@ abstract class Asset
     {
         if ($this->CanBeCached() === false)
         {
-            return;
+            return null;
         }
 
         $_createParsed_Cache = false;
@@ -925,7 +924,6 @@ EOD;
      *
      * @name GetCachedContents
      * @access protected
-     * @param Bool  get minified version
      * @return String
      */
     protected function GetCachedContents()
@@ -979,12 +977,18 @@ EOD;
 
         if($remote || $this->_config['force_curl'])
         {
+            if (substr($ref, 0, 2) === "//")
+            {
+                $ref = "http:".$ref;
+            }
             $ch = curl_init($ref);
             curl_setopt_array($ch, array(
                 CURLOPT_RETURNTRANSFER => 1,
                 CURLOPT_CONNECTTIMEOUT => 5
             ));
             $contents = curl_exec($ch);
+//            $info = curl_getinfo($ch);
+//            $error = curl_error($ch);
             curl_close($ch);
         }
         else
@@ -1039,8 +1043,8 @@ EOD;
     * This should probably be moved into a helper file, but I hate to Add a whole new file for
     * one little 2-line function.
     * @access   public
-    * @param    string to be checked
-    * @return   boolean Returns TRUE/FALSE
+    * @param    $string string to be checked
+    * @return   boolean
     */
     public static function IsUrl($string)
     {

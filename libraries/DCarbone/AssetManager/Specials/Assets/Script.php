@@ -58,8 +58,8 @@ class Script extends Asset
      * @Override
      * @name FileExists
      * @access protected
-     * @param String  file path / Address
-     * @param String  type of file
+     * @param String  $file file path / Address
+     * @param String  $type type of file
      * @return Bool
      */
     protected function FileExists($file, $type = "")
@@ -103,7 +103,7 @@ class Script extends Asset
      * @Override
      * @name GetFilePath
      * @access protected
-     * @param String  file name
+     * @param String  $file file name
      * @return String  asset path
      */
     protected function GetFilePath($file)
@@ -133,7 +133,7 @@ class Script extends Asset
      * @Override
      * @name GetFileUrl
      * @access protected
-     * @param String  file name
+     * @param String  $file file name
      * @return String  asset url
      */
     protected function GetFileUrl($file)
@@ -150,7 +150,7 @@ class Script extends Asset
      * @Override
      * @name Minify
      * @access protected
-     * @param String  file contents
+     * @param String  $data file contents
      * @return String  minified file contents
      */
     protected function Minify($data)
@@ -163,7 +163,7 @@ class Script extends Asset
      *
      * @name Parse
      * @access protected
-     * @param String  file contents
+     * @param String  $data file contents
      * @return String  parsed file contents
      */
     protected function Parse($data)

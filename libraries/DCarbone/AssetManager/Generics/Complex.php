@@ -99,8 +99,8 @@ class Complex
      *
      * @name _CacheFileExists
      * @access private
-     * @param String  file name
-     * @param String  file type
+     * @param String  $file file name
+     * @param String  $type file type
      * @return Bool
      */
     private function _CacheFileExists($file = "", $type = "")
@@ -395,8 +395,8 @@ class Complex
      *
      * @name _CombineAssets
      * @access private
-     * @param Array  array of assets
-     * @param String  name of combined file
+     * @param Array  $assets array of assets
+     * @param String  $combined_name name of combined file
      * @return bool
      */
     private function _CombineAssets(Array $assets, $combined_name)

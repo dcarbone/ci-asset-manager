@@ -102,8 +102,8 @@ class ScriptView extends Asset
      * @Override
      * @name FileExists
      * @access protected
-     * @param String  file name
-     * @param String  asset type
+     * @param String  $file file name
+     * @param String  $type asset type
      * @return Bool
      */
     protected function FileExists($file, $type = "dev")
@@ -148,7 +148,7 @@ class ScriptView extends Asset
      *
      * @name GetFilePath
      * @access protected
-     * @param String  file name
+     * @param String  $file file name
      * @return String  file path
      */
     protected function GetFilePath($file = "")
@@ -175,7 +175,7 @@ class ScriptView extends Asset
      * @override
      * @name GetSrc
      * @access public
-     * @param Boolean  is envirnment development
+     * @param Boolean  $dev is envirnment development
      * @return String  src string for file
      */
     public function GetSrc($dev = true)
@@ -196,7 +196,7 @@ class ScriptView extends Asset
      *
      * @name GetFileUrl
      * @access protected
-     * @param String  filename
+     * @param String  $file filename
      * @return String  full url with file
      */
     protected function GetFileUrl($file = "")
@@ -245,7 +245,7 @@ class ScriptView extends Asset
      * @Override
      * @name Minify
      * @access protected
-     * @param String  file contents
+     * @param String  $data file contents
      * @return String  minified file contents
      */
     protected function Minify($data)
@@ -258,7 +258,7 @@ class ScriptView extends Asset
      *
      * @name Parse
      * @access protected
-     * @param String  file contents
+     * @param String  $data file contents
      * @return String  parsed file contents
      */
     protected function Parse($data)
@@ -281,7 +281,7 @@ class ScriptView extends Asset
     {
         if ($this->CanBeCached() === false)
         {
-            return;
+            return null;
         }
 
         $_createParsed_Cache = false;

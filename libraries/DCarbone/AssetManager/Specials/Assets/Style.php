@@ -67,7 +67,7 @@ class Style extends Asset
      *
      * @name GetFilePath
      * @access protected
-     * @param String  file name
+     * @param String  $file file name
      * @return String  file path
      */
     protected function GetFilePath($file)
@@ -97,7 +97,7 @@ class Style extends Asset
      * @Override
      * @name GetFileUrl
      * @access protected
-     * @param String  filename
+     * @param String  $file filename
      * @return String  full url with file
      */
     protected function GetFileUrl($file)
@@ -114,7 +114,7 @@ class Style extends Asset
      * @Override
      * @name Minify
      * @access protected
-     * @param String  file contents
+     * @param String  $data file contents
      * @return String  minified file contents
      */
     protected function Minify($data)
@@ -127,7 +127,7 @@ class Style extends Asset
      *
      * @name Parse
      * @access protected
-     * @param String  file contents
+     * @param String  $data file contents
      * @return String  parsed file contents
      */
     protected function Parse($data)
