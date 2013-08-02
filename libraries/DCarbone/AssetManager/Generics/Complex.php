@@ -245,6 +245,7 @@ class Complex
                 $surl = $this->_config['cache_url'].$file;
                 echo "\n<script type='text/javascript' language='javascript' src='{$surl}?={$atts['datetime']->format("Ymd")}'></script>";
             }
+            return true;
         }
         return false;
     }
