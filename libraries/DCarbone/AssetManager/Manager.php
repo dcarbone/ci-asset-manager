@@ -449,17 +449,17 @@ class Manager
      * @name AddScriptViewFile
      * @access public
      * @param Array $params
-     * @param string $name
+     * @param string $keyName
      * @return VOID
      */
-    public function AddScriptViewFile(Array $params, $name = "")
+    public function AddScriptViewFile(Array $params, $keyName = "")
     {
         $defaults = array(
             "dev_file" => "",
             "prod_file" => "",
             "minify" => TRUE,
             "cache" => TRUE,
-            "name" => $name,
+            "name" => (is_numeric($keyName) ? "" : $keyName),
             "group" => array("default"),
             "requires" => array()
         );
@@ -494,17 +494,17 @@ class Manager
      * @name AddScriptFile
      * @access public
      * @param Array $params
-     * @param string $name
+     * @param string $keyName
      * @return void
      */
-    public function AddScriptFile(Array $params, $name = "")
+    public function AddScriptFile(Array $params, $keyName = "")
     {
         $defaults = array(
             "dev_file" => "",
             "prod_file" => "",
             "minify" => TRUE,
             "cache" => TRUE,
-            "name" => $name,
+            "name" => (is_numeric($keyName) ? "" : $keyName),
             "group" => array("default"),
             "requires" => array()
         );
@@ -557,10 +557,10 @@ class Manager
      * @name AddStyleFile
      * @access public
      * @param Array $params
-     * @param string $name
+     * @param string $keyName
      * @return void
      */
-    public function AddStyleFile(Array $params, $name = "")
+    public function AddStyleFile(Array $params, $keyName = "")
     {
         $defaults = array(
             "dev_file"  => "",
@@ -568,7 +568,7 @@ class Manager
             "media"     => "all",
             "minify"    => TRUE,
             "cache"     => TRUE,
-            "name"      => $name,
+            "name"      => (is_numeric($keyName) ? "" : $keyName),
             "group"     => array("default"),
             "requires"  => array()
         );
