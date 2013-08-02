@@ -359,16 +359,16 @@ class Manager
         }
 
         if (isset($config['scripts']) && is_array($config['scripts']))
-            foreach($config['scripts'] as $name=>$script)
-                $this->AddScriptFile($script, $name);
+            foreach($config['scripts'] as $scriptName=>$script)
+                $this->AddScriptFile($script, $scriptName);
 
         if (isset($config['styles']) && is_array($config['styles']))
-            foreach($config['styles'] as $name=>$style)
-                $this->AddStyleFile($style, $name);
+            foreach($config['styles'] as $styleName=>$style)
+                $this->AddStyleFile($style, $styleName);
 
         if (isset($config['views']) && is_array($config['views']))
-            foreach($config['views'] as $name=>$view)
-                $this->AddScriptViewFile($view, $name);
+            foreach($config['views'] as $scriptViewName=>$view)
+                $this->AddScriptViewFile($view, $scriptViewName);
 
         log_message('debug', 'Asset Manager: library configured.');
     }

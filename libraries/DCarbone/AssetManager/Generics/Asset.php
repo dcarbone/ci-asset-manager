@@ -200,7 +200,15 @@ abstract class Asset
     {
         foreach($args as $k=>$v)
         {
-            $this->$k = $v;
+            switch($k)
+            {
+                case "group" :
+                case "groups" :
+                    if (is_string($v))
+                        $v = array($v);
+
+                default : $this->$k = $v;
+            }
         }
     }
 
