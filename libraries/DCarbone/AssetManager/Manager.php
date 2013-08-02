@@ -248,21 +248,21 @@ class Manager
 
         log_message('info', 'Asset Manager: Library initialized.');
 
-        if( static::$CI->config->Load('assetmanager', TRUE, TRUE) ){
+        if( static::$CI->config->load('assetmanager', TRUE, TRUE) ){
 
             log_message('info', 'Asset Manager: config Loaded from config file.');
 
             $config_file = static::$CI->config->item('assetmanager');
 
             $this->_ParseConfig($config_file);
+
+            // Load up the default group
+            $this->LoadGroups("default");
         }
         else
         {
             log_message("error", "Asset Manager config file unable to Load.");
         }
-
-        // Load up the default group
-        $this->LoadGroups("default");
     }
 
     /**
@@ -358,6 +358,18 @@ class Manager
             }
         }
 
+        if (isset($config['scripts']) && is_array($config['scripts']))
+            foreach($config['scripts'] as $name=>$script)
+                $this->AddScriptFile($script, $name);
+
+        if (isset($config['styles']) && is_array($config['styles']))
+            foreach($config['styles'] as $name=>$style)
+                $this->AddStyleFile($style, $name);
+
+        if (isset($config['views']) && is_array($config['views']))
+            foreach($config['views'] as $name=>$view)
+                $this->AddScriptViewFile($view, $name);
+
         log_message('debug', 'Asset Manager: library configured.');
     }
 
@@ -437,16 +449,17 @@ class Manager
      * @name AddScriptViewFile
      * @access public
      * @param Array $params
+     * @param string $name
      * @return VOID
      */
-    public function AddScriptViewFile(Array $params)
+    public function AddScriptViewFile(Array $params, $name = "")
     {
         $defaults = array(
             "dev_file" => "",
             "prod_file" => "",
             "minify" => TRUE,
             "cache" => TRUE,
-            "name" => "",
+            "name" => $name,
             "group" => array("default"),
             "requires" => array()
         );
@@ -481,16 +494,17 @@ class Manager
      * @name AddScriptFile
      * @access public
      * @param Array $params
+     * @param string $name
      * @return void
      */
-    public function AddScriptFile(Array $params)
+    public function AddScriptFile(Array $params, $name = "")
     {
         $defaults = array(
             "dev_file" => "",
             "prod_file" => "",
             "minify" => TRUE,
             "cache" => TRUE,
-            "name" => "",
+            "name" => $name,
             "group" => array("default"),
             "requires" => array()
         );
@@ -543,9 +557,10 @@ class Manager
      * @name AddStyleFile
      * @access public
      * @param Array $params
+     * @param string $name
      * @return void
      */
-    public function AddStyleFile(Array $params)
+    public function AddStyleFile(Array $params, $name = "")
     {
         $defaults = array(
             "dev_file"  => "",
@@ -553,7 +568,7 @@ class Manager
             "media"     => "all",
             "minify"    => TRUE,
             "cache"     => TRUE,
-            "name"      => "",
+            "name"      => $name,
             "group"     => array("default"),
             "requires"  => array()
         );
@@ -646,27 +661,27 @@ class Manager
         // If this group requires any script views
         if (count($views) > 0)
         {
-            foreach($views as $view)
+            foreach($views as $vName=>$view)
             {
-                $this->AddScriptViewFile(array("group" => $group_name, "dev_file" => $view));
+                $this->AddScriptViewFile(array("group" => $group_name, "dev_file" => $view), $vName);
             }
             $this->_groups[$group_name]['views'] = $views;
         }
 
         // Parse our script files
-        foreach($scripts as $asset)
+        foreach($scripts as $scriptName=>$asset)
         {
             $parsed = $this->ParseAsset($asset, $group_name);
-            $this->AddScriptFile($parsed);
+            $this->AddScriptFile($parsed, $scriptName);
         }
         // Do this so we are sure to have a clean $asset variable
         unset($asset);
 
         // Parse our style files
-        foreach($styles as $asset)
+        foreach($styles as $styleName=>$asset)
         {
             $parsed = $this->ParseAsset($asset, $group_name);
-            $this->AddStyleFile($parsed);
+            $this->AddStyleFile($parsed, $styleName);
         }
     }
 
