@@ -872,8 +872,8 @@ class Manager
                     $this->LoadGroups($rgroup);
                 }
                 $this->LoadStyles($this->_groups[$group]['styles']);
-                $this->LoadScriptViews($this->_groups[$group]['views']);
                 $this->LoadScripts($this->_groups[$group]['scripts']);
+                $this->LoadScriptViews($this->_groups[$group]['views']);
                 $this->_loaded['groups'][$group] = $this->_groups[$group];
             }
         }
@@ -948,12 +948,12 @@ class Manager
      */
     protected function _GenerateComplexOutput(Array $styles, Array $scripts)
     {
-         /*
-         * Build arrays:
-         * array(
-         *   "asset_name" => Asset_object
-         * );
-         */
+        /*
+        * Build arrays:
+        * array(
+        *   "asset_name" => Asset_object
+        * );
+        */
         $_styles = array();
         $_scripts = array();
         // Style files (Cascading Style Sheets)
