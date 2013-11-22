@@ -1,10 +1,4 @@
-<?php namespace DCarbone\AssetManager\Specials\Assets;
-
-use \DCarbone\AssetManager\Manager;
-
-use \CssMin;
-use \JSMin;
-use \DCarbone\AssetManager\Generics\Asset;
+<?php namespace DCarbone\AssetManager\Asset;
 
 /*
     Script Asset Class for AssetManager Library
@@ -24,45 +18,47 @@ use \DCarbone\AssetManager\Generics\Asset;
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-class Script extends Asset
+/**
+ * Class ScriptAsset
+ * @package DCarbone\AssetManager\Asset
+ */
+class ScriptAsset extends AbstractAsset
 {
-
     /**
      * Constructor
      */
-    public function __construct(Array $config, Array $args)
+    public function __construct(array $config, array $args)
     {
         parent::__construct($config, $args);
-        $this->extension = Manager::$scriptFileExtension;
+        $this->extension = \AssetManager::$script_file_extension;
     }
 
     /**
      * Get <script /> tag Output for this file
      *
-     * @name GetOutput
-     * @access public
      * @return String  html Output
      */
-    public function GetOutput()
+    public function get_output()
     {
-        $Output = "<script type='text/javascript' language='javascript'";
-        $Output .= " src='".str_ireplace(array("http:", "https:"), "", $this->GetSrc($this->IsDev())).$this->GetVer()."'";
-        $Output .= "></script>";
+        $output = "<script type='text/javascript' language='javascript'";
+        if ($this->is_dev())
+            $output .= " src='".str_ireplace(array("http:", "https:"), "", $this->get_dev_src());
+        else
+            $output .= " src='".str_ireplace(array("http:", "https:"), "", $this->get_prod_src());
 
-        return $Output;
+        $output .= $this->get_file_version()."'></script>";
+
+        return $output;
     }
 
     /**
      * Determine if script file exists
      *
-     * @Override
-     * @name FileExists
-     * @access protected
      * @param String  $file file path / Address
      * @param String  $type type of file
      * @return Bool
      */
-    protected function FileExists($file, $type = "")
+    protected function file_exists($file, $type = "")
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
         {
@@ -74,7 +70,7 @@ class Script extends Asset
             return true;
         }
 
-        $filepath = $this->GetAssetPath().$file;
+        $filepath = $this->get_asset_path().$file;
         if (!file_exists($filepath))
         {
             $this->_failure(array("details" => "Could not find file at \"{$filepath}\""));
@@ -92,9 +88,9 @@ class Script extends Asset
      * @access public
      * @return String
      */
-    public function GetAssetPath()
+    public function get_asset_path()
     {
-        return $this->_config['script_path'];
+        return $this->config['script_path'];
     }
 
     /**
@@ -106,12 +102,12 @@ class Script extends Asset
      * @param String  $file file name
      * @return String  asset path
      */
-    protected function GetFilePath($file)
+    protected function get_file_path($file)
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
             return $file;
 
-        return $filepath = $this->GetAssetPath().$file;
+        return $filepath = $this->get_asset_path().$file;
     }
 
     /**
@@ -122,9 +118,9 @@ class Script extends Asset
      * @access public
      * @return String  asset url
      */
-    public function GetAssetUrl()
+    public function get_asset_url()
     {
-        return $this->_config['script_url'];
+        return $this->config['script_url'];
     }
 
     /**
@@ -136,12 +132,12 @@ class Script extends Asset
      * @param String  $file file name
      * @return String  asset url
      */
-    protected function GetFileUrl($file)
+    protected function get_file_url($file)
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
             return $file;
 
-        return $filepath = $this->GetAssetUrl().$file;
+        return $filepath = $this->get_asset_url().$file;
     }
 
     /**
@@ -153,9 +149,9 @@ class Script extends Asset
      * @param String  $data file contents
      * @return String  minified file contents
      */
-    protected function Minify($data)
+    protected function minify($data)
     {
-        return JSMin::minify($data);
+        return \JSMin::minify($data);
     }
 
     /**
@@ -166,11 +162,11 @@ class Script extends Asset
      * @param String  $data file contents
      * @return String  parsed file contents
      */
-    protected function Parse($data)
+    protected function parse_asset_file($data)
     {
-        $replace_keys = array_keys(Manager::$scriptBrackets);
+        $replace_keys = array_keys(\AssetManager::$script_brackets);
 
-        $replace_values = array_values(Manager::$scriptBrackets);
+        $replace_values = array_values(\AssetManager::$script_brackets);
 
         return str_replace($replace_keys, $replace_values, $data);
     }

@@ -1,10 +1,4 @@
-<?php namespace DCarbone\AssetManager\Specials\Assets;
-
-use \DCarbone\AssetManager\Manager;
-
-use \CssMin;
-use \JSMin;
-use \DCarbone\AssetManager\Generics\Asset;
+<?php namespace DCarbone\AssetManager\Asset;
 
 /*
     Style Asset Class for AssetManager Library
@@ -24,7 +18,11 @@ use \DCarbone\AssetManager\Generics\Asset;
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-class Style extends Asset
+/**
+ * Class StyleAsset
+ * @package DCarbone\AssetManager\Asset
+ */
+class StyleAsset extends AbstractAsset
 {
     /**
      * Type of media this CSS file is for
@@ -35,19 +33,23 @@ class Style extends Asset
     public function __construct(Array $config, Array $args)
     {
         parent::__construct($config, $args);
-        $this->extension = Manager::$styleFileExtension;
+        $this->extension = \AssetManager::$style_file_extension;
     }
 
     /**
-     *
+     * @return string
      */
-    public function GetOutput()
+    public function get_output()
     {
-        $Output = "<link rel='stylesheet' type='text/css'";
-        $Output .= " href='".str_ireplace(array("http:", "https:"), "", $this->GetSrc($this->IsDev())).$this->GetVer()."'";
-        $Output .= " media='{$this->media}' />";
+        $output = "<link rel='stylesheet' type='text/css'";
+        if ($this->is_dev())
+            $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_dev_src());
+        else
+            $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_prod_src());
 
-        return $Output;
+        $output .= $this->get_file_version()."' media='{$this->media}' />";
+
+        return $output;
     }
 
     /**
@@ -57,9 +59,9 @@ class Style extends Asset
      * @access public
      * @return String
      */
-    public function GetAssetPath()
+    public function get_asset_path()
     {
-        return $this->_config['style_path'];
+        return $this->config['style_path'];
     }
 
     /**
@@ -70,12 +72,12 @@ class Style extends Asset
      * @param String  $file file name
      * @return String  file path
      */
-    protected function GetFilePath($file)
+    protected function get_file_path($file)
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
             return $file;
 
-        return $filepath = $this->GetAssetPath().$file;
+        return $filepath = $this->get_asset_path().$file;
     }
 
     /**
@@ -86,9 +88,9 @@ class Style extends Asset
      * @access public
      * @return String  asset url
      */
-    public function GetAssetUrl()
+    public function get_asset_url()
     {
-        return $this->_config['style_url'];
+        return $this->config['style_url'];
     }
 
     /**
@@ -100,12 +102,12 @@ class Style extends Asset
      * @param String  $file filename
      * @return String  full url with file
      */
-    protected function GetFileUrl($file)
+    protected function get_file_url($file)
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
             return $file;
 
-        return $filepath = $this->GetAssetUrl().$file;
+        return $filepath = $this->get_asset_url().$file;
     }
 
     /**
@@ -117,9 +119,9 @@ class Style extends Asset
      * @param String  $data file contents
      * @return String  minified file contents
      */
-    protected function Minify($data)
+    protected function minify($data)
     {
-        return CssMin::minify($data);
+        return \CssMin::minify($data);
     }
 
     /**
@@ -130,11 +132,11 @@ class Style extends Asset
      * @param String  $data file contents
      * @return String  parsed file contents
      */
-    protected function Parse($data)
+    protected function parse_asset_file($data)
     {
-        $replace_keys = array_keys(Manager::$styleBrackets);
+        $replace_keys = array_keys(\AssetManager::$style_brackets);
 
-        $replace_values = array_values(Manager::$styleBrackets);
+        $replace_values = array_values(\AssetManager::$style_brackets);
 
         return str_replace($replace_keys, $replace_values, $data);
     }

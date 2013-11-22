@@ -1,18 +1,4 @@
-<?php namespace DCarbone\AssetManager\Generics;
-
-use \DateTime;
-use \DateTimeZone;
-
-use \DCarbone\AssetManager\Manager;
-
-use \DCarbone\AssetManager\Generics\Asset;
-
-use \CssMin;
-use \JSMin;
-
-use \DCarbone\AssetManager\Specials\Assets\Script;
-use \DCarbone\AssetManager\Specials\Assets\Style;
-use \DCarbone\AssetManager\Specials\Assets\ScriptView;
+<?php namespace DCarbone\AssetManager;
 
 /*
     Complex Output Class for Asset Management Library
@@ -32,54 +18,53 @@ use \DCarbone\AssetManager\Specials\Assets\ScriptView;
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-class Complex
-{
-    protected static $CI = null;
+use DCarbone\AssetManager\Asset\AbstractAsset;
+use DCarbone\AssetManager\Asset\StyleAsset;
 
+/**
+ * Class ComplexOutput
+ * @package DCarbone\AssetManager
+ */
+class ComplexOutput
+{
     private $_config = array();
 
     private $_styles = array();
     private $_scripts = array();
 
-    private $Output = array();
-
-    private $_Cache_files = array();
+    private $_cache_files = array();
 
     /**
      * Constructor
      *
-     * @param Array $styles  [description]
-     * @param Array $scripts [description]
-     * @param Array $config  [description]
+     * @param array $styles
+     * @param array $scripts
+     * @param array $config
      */
-    public function __construct(Array $styles, Array $scripts, Array $config)
+    public function __construct(array $styles, array $scripts, array $config)
     {
-        static::$CI =& get_instance();
-
         $this->_config = $config;
 
-        $this->_Cache_files = $this->_GetCacheFileArray();
+        $this->_cache_files = $this->_get_cache_file_array();
 
-        $this->_GenerateOutput($styles, $scripts);
+        $this->_generate_output($styles, $scripts);
     }
 
     /**
      * Get a list of the currently cached asset files
      *
-     * @name _GetCacheFileArray
-     * @access private
-     * @return Array  array of cached assets
+     * @return array  array of cached assets
      */
-    private function _GetCacheFileArray()
+    private function _get_cache_file_array()
     {
-        $build_name_array = function(Array $arr)
+        $build_name_array = function(array $arr)
         {
             $return = array();
             foreach($arr as $a)
             {
                 $return[basename($a)] = array(
                     "path" => $a,
-                    "datetime" => new DateTime("@".(string)filemtime($a))
+                    "datetime" => new \DateTime("@".(string)filemtime($a))
                 );
             }
             return $return;
@@ -97,34 +82,32 @@ class Complex
     /**
      * Determine if file exists in cache
      *
-     * @name _CacheFileExists
-     * @access private
      * @param String  $file file name
      * @param String  $type file type
-     * @return Bool
+     * @return bool
      */
-    private function _CacheFileExists($file = "", $type = "")
+    private function _cache_file_exists($file = "", $type = "")
     {
         switch($type)
         {
             case "style" :
-                if (array_key_exists($file, $this->_Cache_files['styles']))
+                if (array_key_exists($file, $this->_cache_files['styles']))
                 {
-                    return $this->_Cache_files['styles'][$file];
+                    return $this->_cache_files['styles'][$file];
                 }
                 return false;
             break;
             case "script" :
-                if (array_key_exists($file, $this->_Cache_files['scripts']))
+                if (array_key_exists($file, $this->_cache_files['scripts']))
                 {
-                    return $this->_Cache_files['scripts'][$file];
+                    return $this->_cache_files['scripts'][$file];
                 }
                 return false;
             break;
             default :
-                if (array_key_exists($file, $this->_Cache_files['all']))
+                if (array_key_exists($file, $this->_cache_files['all']))
                 {
-                    return $this->_Cache_files['all'][$file];
+                    return $this->_cache_files['all'][$file];
                 }
                 return false;
             break;
@@ -134,9 +117,9 @@ class Complex
     /**
      * Get Cached File Information
      *
-     * XXX Finish this
+     * @TODO finish this
      */
-    private function _GetCacheFileInfo($file = "")
+    private function _get_cache_file_info($file = "")
     {
 
     }
@@ -144,26 +127,21 @@ class Complex
     /**
      * Get newest modification date of files within cache container
      *
-     * @name _GetNewestModifiedDate
-     * @access private
-     * @param Array  array of files
+     * @param array  array of files
      * @return \DateTime
      */
-    private function _GetNewestModifiedDate(Array $files)
+    private function _get_newest_date_modified(array $files)
     {
-        $date = new DateTime("0:00:00 January 1, 1970 UTC");
+        $date = new \DateTime("0:00:00 January 1, 1970 UTC");
         foreach($files as $name=>$obj)
         {
-            $d = $obj->GetDateModified();
+            /** @var $obj AbstractAsset */
+            $d = $obj->get_dev_date_modified();
 
-            if (!($d instanceof DateTime))
-            {
+            if (!($d instanceof \DateTime))
                 continue;
-            }
             else if ($d > $date)
-            {
                 $date = $d;
-            }
         }
         return $date;
     }
@@ -173,11 +151,9 @@ class Complex
      *
      * Echoes out css <link> tags
      *
-     * @name OutputStyles
-     * @access public
-     * @return Bool
+     * @return bool
      */
-    public function OutputStyles()
+    public function output_styles()
     {
         if ($this->_styles !== false && is_array($this->_styles))
         {
@@ -232,11 +208,9 @@ class Complex
      *
      * Echoes out js <script> tags
      *
-     * @name OutputScripts
-     * @access public
-     * @return Bool
+     * @return bool
      */
-    public function OutputScripts()
+    public function output_scripts()
     {
         if ($this->_scripts !== false && is_array($this->_scripts))
         {
@@ -255,22 +229,17 @@ class Complex
      *
      * This method calls one or more of the 2 specific combination Output methods
      *
-     * @name _GenerateOutput
-     * @access private
-     * @param Array  array of styles
-     * @param Array  array of scripts
+     * @param array  array of styles
+     * @param array  array of scripts
      * @return void
      */
-    private function _GenerateOutput(Array $styles, Array $scripts)
+    private function _generate_output(array $styles, array $scripts)
     {
         if (count($styles) > 0)
-        {
-            $this->_GenerateCombinedStyles($styles);
-        }
+            $this->_generate_combined_styles($styles);
+
         if (count($scripts) > 0)
-        {
-            $this->_GenerateCombinedScripts($scripts);
-        }
+            $this->_generate_combined_scripts($scripts);
     }
 
     /**
@@ -278,15 +247,13 @@ class Complex
      *
      * This method takes all of the desired styles, orders them, then combines into a single string for caching
      *
-     * @name _GenerateCombinedStyles
-     * @access private
-     * @param Array  array of styles
-     * @return Void
+     * @param array  array of styles
+     * @return void
      */
-    private function _GenerateCombinedStyles(Array $styles)
+    private function _generate_combined_styles(array $styles)
     {
         $medias = array();
-        $get_media = function (Style $style) use (&$medias)
+        $get_media = function (StyleAsset $style) use (&$medias)
         {
             if (isset($style->media) && !array_key_exists($style->media, $medias))
             {
@@ -294,17 +261,17 @@ class Complex
             }
             else if (isset($style->media) && array_key_exists($style->media, $medias))
             {
-                $medias[$style->media][$style->GetName()] = $style;
+                $medias[$style->media][$style->get_name()] = $style;
             }
             else
             {
                 if (isset($medias['screen']))
                 {
-                    $medias['screen'][$style->GetName()] = $style;
+                    $medias['screen'][$style->get_name()] = $style;
                 }
                 else
                 {
-                    $medias['screen'] = array($style->GetName() => $style);
+                    $medias['screen'] = array($style->get_name() => $style);
                 }
             }
         };
@@ -313,24 +280,17 @@ class Complex
 
         foreach($medias as $media=>$styles)
         {
-
-            $newest_file = $this->_GetNewestModifiedDate($styles);
+            $newest_file = $this->_get_newest_date_modified($styles);
             $style_names = array_keys($styles);
 
-            $combined_style_name = md5(Manager::$filePrependValue.implode("", $style_names)).".css";
-            $cachefile = $this->_CacheFileExists($combined_style_name, "style");
+            $combined_style_name = md5(\AssetManager::$file_prepend_value.implode("", $style_names)).".css";
+            $cache_file = $this->_cache_file_exists($combined_style_name, "style");
             $combined = true;
-            if ($cachefile !== false)
-            {
-                if ($newest_file > $cachefile['datetime'])
-                {
-                    $combined = $this->_CombineAssets($styles, $combined_style_name);
-                }
-            }
-            else if ($cachefile === false)
-            {
-                $combined = $this->_CombineAssets($styles, $combined_style_name);
-            }
+
+            if ($cache_file !== false && $newest_file > $cache_file['datetime'])
+                $combined = $this->_combine_assets($styles, $combined_style_name);
+            else if ($cache_file === false)
+                $combined = $this->_combine_assets($styles, $combined_style_name);
 
             // If there was an error combining the files
             if ($combined === false)
@@ -339,15 +299,12 @@ class Complex
             }
             else
             {
-                if ($this->_styles === false) continue;
+                if ($this->_styles === false)
+                    continue;
                 else if (is_array($this->_styles))
-                {
                     $this->_styles[$combined_style_name] = array("media" => $media, "datetime" => $newest_file);
-                }
                 else
-                {
                     $this->_styles = array($combined_style_name => array("media" => $media, "datetime" => $newest_file));
-                }
             }
         }
     }
@@ -357,36 +314,27 @@ class Complex
      *
      * This method takes all desired Output script files, orders them, then combines into a single string for caching
      *
-     * @name _GenerateCombinedScripts
-     * @access private
-     * @param Array  array of script files
-     * @return Void
+     * @param array  array of script files
+     * @return void
      */
-    private function _GenerateCombinedScripts(Array $scripts)
+    private function _generate_combined_scripts(array $scripts)
     {
         $script_names = array_keys($scripts);
-        $combined_script_name = md5(Manager::$filePrependValue.implode("", $script_names)).".js";
-        $newest_file = $this->_GetNewestModifiedDate($scripts);
-        $cachefile = $this->_CacheFileExists($combined_script_name, "script");
+        $combined_script_name = md5(\AssetManager::$file_prepend_value.implode("", $script_names)).".js";
+        $newest_file = $this->_get_newest_date_modified($scripts);
+        $cache_file = $this->_cache_file_exists($combined_script_name, "script");
         $combined = true;
-        if ($cachefile !== false && $newest_file > $cachefile['datetime'])
-        {
-            $combined = $this->_CombineAssets($scripts, $combined_script_name);
-        }
-        else if ($cachefile === false)
-        {
-            $combined = $this->_CombineAssets($scripts, $combined_script_name);
-        }
+
+        if ($cache_file !== false && $newest_file > $cache_file['datetime'])
+            $combined = $this->_combine_assets($scripts, $combined_script_name);
+        else if ($cache_file === false)
+            $combined = $this->_combine_assets($scripts, $combined_script_name);
 
         // If there was an error combining the files
         if ($combined === false)
-        {
             $this->_scripts = false;
-        }
         else
-        {
             $this->_scripts = array($combined_script_name => array("datetime" => $newest_file));
-        }
     }
 
     /**
@@ -394,31 +342,28 @@ class Complex
      *
      * This method actually combines the assets passed to it and saves it to a file
      *
-     * @name _CombineAssets
-     * @access private
-     * @param Array  $assets array of assets
+     * @param array  $assets array of assets
      * @param String  $combined_name name of combined file
      * @return bool
      */
-    private function _CombineAssets(Array $assets, $combined_name)
+    private function _combine_assets(array $assets, $combined_name)
     {
         $combine_file = $this->_config['cache_path'].$combined_name;
 
         $tmp = array();
         foreach($assets as $asset)
         {
-            $contents = $asset->GetContents();
+            /** @var $asset AbstractAsset */
+            $contents = $asset->get_asset_contents();
+
             if ($contents !== false)
-            {
                 $tmp[] = $contents;
-            }
         }
         $fp = fopen($combine_file, "w");
 
         if ($fp === false)
-        {
             return false;
-        }
+
         foreach($tmp as $t)
         {
             fwrite($fp, $t);

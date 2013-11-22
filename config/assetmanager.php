@@ -144,7 +144,7 @@ $config['minify_styles'] = !$config['dev'];
 |
 */
 
-$config['force_curl'] = FALSE;
+$config['force_curl'] = true;
 
 #--------------------------------------------------------------------------
 # jQuery
