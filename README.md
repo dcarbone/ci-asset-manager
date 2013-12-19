@@ -42,8 +42,7 @@ For example:
 	$config['groups']['GROUPNAME'] = array(
 		"scripts" => array(
 			array(
-				"dev_file" => "",
-	            "prod_file" => "",
+				"file" => "",
 	            "minify" => TRUE,
 	            "cache" => TRUE,
 	            "name" => "",
@@ -55,7 +54,7 @@ For example:
 		),
 		"styles" => array(
 			array(
-				"dev_file"  => "",
+				"file"  => "",
 	            "prod_file" => "",
 	            "media"     => "screen",
 	            "minify"    => TRUE,
@@ -68,9 +67,6 @@ For example:
 				// additional style file
 			)
 		),
-		"views" => array(
-			// script view files required by this group
-		),
 		"groups" => array(
 			// other groups that are required by this group
 		)
@@ -81,13 +77,10 @@ These are the paramters that can make up any given group array.
 
 ### Script Parameter Breakdown
 
-**dev_file**
+**file**
 This field is required.  Use the full filename of the file relative to the assets/scripts
 directory defined further up in the config file.
 **If the file is remote, put the full URL here**
-
-**prod_file**
-This field is optional.  It only effects non-development environments.
 
 **minify**
 This field is optional, it defaults to true.  Minify only affects non-dev environments and the file will only be minified if both
@@ -98,7 +91,7 @@ This field is optional, it defaults to true
 Caching does multiple things and will be explained further below
 
 **name**
-This field defaults to whatever you put in dev_file, however you can specify a
+This field defaults to whatever you put in file, however you can specify a
 name of your choosing here.
 
 **requires**
@@ -107,8 +100,7 @@ List the other script files by name that this specific file requires
 
 ### Style Parameter Breakdown
 
-**dev_file**
-**prod_file**
+**file**
 **minify**
 **cache**
 **name**
@@ -118,11 +110,6 @@ These follow the same rules as Scripts
 **media**
 Styles have the additional attribute of "media", this is used not only for non-combined output but
 when the global config "combine" is set to true, styles are grouped by "media" types for output.
-
-### Views
-
-View files are Javascript files which are not allowed to be remote and have a separate folder.
-These files do not have any parameters, simply list their names.
 
 ### Groups
 
@@ -141,7 +128,7 @@ If you had:
 	$config['groups']['jquery'] = array(
 	    'scripts' => array(
 	        array(
-	            "dev_file" => 'http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js',
+	            "file" => 'http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js',
 	            "minify" => false,
 	            "cache" => false,
 	            "name" => "jquery"

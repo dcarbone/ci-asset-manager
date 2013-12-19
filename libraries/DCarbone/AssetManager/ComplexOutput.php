@@ -82,8 +82,8 @@ class ComplexOutput
     /**
      * Determine if file exists in cache
      *
-     * @param String  $file file name
-     * @param String  $type file type
+     * @param string  $file file name
+     * @param string  $type file type
      * @return bool
      */
     private function _cache_file_exists($file = "", $type = "")
@@ -136,7 +136,7 @@ class ComplexOutput
         foreach($files as $name=>$obj)
         {
             /** @var $obj AbstractAsset */
-            $d = $obj->get_dev_date_modified();
+            $d = $obj->get_file_date_modified();
 
             if (!($d instanceof \DateTime))
                 continue;
@@ -256,24 +256,13 @@ class ComplexOutput
         $get_media = function (StyleAsset $style) use (&$medias)
         {
             if (isset($style->media) && !array_key_exists($style->media, $medias))
-            {
                 $medias[$style->media] = array($style);
-            }
             else if (isset($style->media) && array_key_exists($style->media, $medias))
-            {
                 $medias[$style->media][$style->get_name()] = $style;
-            }
+            else if (isset($medias['screen']))
+                $medias['screen'][$style->get_name()] = $style;
             else
-            {
-                if (isset($medias['screen']))
-                {
-                    $medias['screen'][$style->get_name()] = $style;
-                }
-                else
-                {
-                    $medias['screen'] = array($style->get_name() => $style);
-                }
-            }
+                $medias['screen'] = array($style->get_name() => $style);
         };
 
         array_map($get_media, $styles);
@@ -294,18 +283,13 @@ class ComplexOutput
 
             // If there was an error combining the files
             if ($combined === false)
-            {
                 $this->_styles = false;
-            }
+            else if ($this->_styles === false)
+                continue;
+            else if (is_array($this->_styles))
+                $this->_styles[$combined_style_name] = array("media" => $media, "datetime" => $newest_file);
             else
-            {
-                if ($this->_styles === false)
-                    continue;
-                else if (is_array($this->_styles))
-                    $this->_styles[$combined_style_name] = array("media" => $media, "datetime" => $newest_file);
-                else
-                    $this->_styles = array($combined_style_name => array("media" => $media, "datetime" => $newest_file));
-            }
+                $this->_styles = array($combined_style_name => array("media" => $media, "datetime" => $newest_file));
         }
     }
 
@@ -343,7 +327,7 @@ class ComplexOutput
      * This method actually combines the assets passed to it and saves it to a file
      *
      * @param array  $assets array of assets
-     * @param String  $combined_name name of combined file
+     * @param string  $combined_name name of combined file
      * @return bool
      */
     private function _combine_assets(array $assets, $combined_name)

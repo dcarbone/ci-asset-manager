@@ -36,16 +36,12 @@ class ScriptAsset extends AbstractAsset
     /**
      * Get <script /> tag Output for this file
      *
-     * @return String  html Output
+     * @return string  html Output
      */
     public function get_output()
     {
         $output = "<script type='text/javascript' language='javascript'";
-        if ($this->is_dev())
-            $output .= " src='".str_ireplace(array("http:", "https:"), "", $this->get_dev_src());
-        else
-            $output .= " src='".str_ireplace(array("http:", "https:"), "", $this->get_prod_src());
-
+        $output .= " src='".str_ireplace(array("http:", "https:"), "", $this->get_file_src());
         $output .= $this->get_file_version()."'></script>";
 
         return $output;
@@ -54,26 +50,19 @@ class ScriptAsset extends AbstractAsset
     /**
      * Determine if script file exists
      *
-     * @param String  $file file path / Address
-     * @param String  $type type of file
+     * @param string  $file file path / Address
+     * @param string  $type type of file
      * @return Bool
      */
     protected function file_exists($file, $type = "")
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
-        {
-            switch($type)
-            {
-                case "dev" : $this->dev_is_remote = true; break;
-                case "prod" : $this->prod_is_remote = true; break;
-            }
-            return true;
-        }
+            return $this->file_is_remote = true;
 
-        $filepath = $this->get_asset_path().$file;
-        if (!file_exists($filepath))
+        $file_path = $this->get_asset_path().$file;
+        if (!file_exists($file_path))
         {
-            $this->_failure(array("details" => "Could not find file at \"{$filepath}\""));
+            $this->_failure(array("details" => "Could not find file at \"{$file_path}\""));
             return false;
         }
 
@@ -83,10 +72,7 @@ class ScriptAsset extends AbstractAsset
     /**
      * Get Asset Path for specific asset
      *
-     * @Override
-     * @name GetAssetPath
-     * @access public
-     * @return String
+     * @return string
      */
     public function get_asset_path()
     {
@@ -96,11 +82,8 @@ class ScriptAsset extends AbstractAsset
     /**
      * Get full file path for asset
      *
-     * @Override
-     * @name GetFilePath
-     * @access protected
-     * @param String  $file file name
-     * @return String  asset path
+     * @param string  $file file name
+     * @return string  asset path
      */
     protected function get_file_path($file)
     {
@@ -113,10 +96,7 @@ class ScriptAsset extends AbstractAsset
     /**
      * Get Asset Url for specific asset
      *
-     * @Override
-     * @name GetAssetUrl
-     * @access public
-     * @return String  asset url
+     * @return string  asset url
      */
     public function get_asset_url()
     {
@@ -126,11 +106,8 @@ class ScriptAsset extends AbstractAsset
     /**
      * Get Full URL to file
      *
-     * @Override
-     * @name GetFileUrl
-     * @access protected
-     * @param String  $file file name
-     * @return String  asset url
+     * @param string  $file file name
+     * @return string  asset url
      */
     protected function get_file_url($file)
     {
@@ -143,11 +120,8 @@ class ScriptAsset extends AbstractAsset
     /**
      * Minify Asset Data
      *
-     * @Override
-     * @name Minify
-     * @access protected
-     * @param String  $data file contents
-     * @return String  minified file contents
+     * @param string  $data file contents
+     * @return string  minified file contents
      */
     protected function minify($data)
     {
@@ -157,10 +131,8 @@ class ScriptAsset extends AbstractAsset
     /**
      * Parse Asset File and replace key markers
      *
-     * @name Parse
-     * @access protected
-     * @param String  $data file contents
-     * @return String  parsed file contents
+     * @param string  $data file contents
+     * @return string  parsed file contents
      */
     protected function parse_asset_file($data)
     {

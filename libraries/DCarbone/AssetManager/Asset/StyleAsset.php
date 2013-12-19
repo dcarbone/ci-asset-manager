@@ -26,11 +26,15 @@ class StyleAsset extends AbstractAsset
 {
     /**
      * Type of media this CSS file is for
-     * @var String
+     * @var string
      */
     public $media;
 
-    public function __construct(Array $config, Array $args)
+    /**
+     * @param array $config
+     * @param array $args
+     */
+    public function __construct(array $config, array $args)
     {
         parent::__construct($config, $args);
         $this->extension = \AssetManager::$style_file_extension;
@@ -42,11 +46,7 @@ class StyleAsset extends AbstractAsset
     public function get_output()
     {
         $output = "<link rel='stylesheet' type='text/css'";
-        if ($this->is_dev())
-            $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_dev_src());
-        else
-            $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_prod_src());
-
+        $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_file_src());
         $output .= $this->get_file_version()."' media='{$this->media}' />";
 
         return $output;
@@ -55,9 +55,7 @@ class StyleAsset extends AbstractAsset
     /**
      * Get Asset Path for specific asset
      *
-     * @name GetAssetPath
-     * @access public
-     * @return String
+     * @return string
      */
     public function get_asset_path()
     {
@@ -67,10 +65,8 @@ class StyleAsset extends AbstractAsset
     /**
      * Get Full Filepath for asset
      *
-     * @name GetFilePath
-     * @access protected
-     * @param String  $file file name
-     * @return String  file path
+     * @param string  $file file name
+     * @return string  file path
      */
     protected function get_file_path($file)
     {
@@ -83,10 +79,7 @@ class StyleAsset extends AbstractAsset
     /**
      * Get Asset Url for specific asset
      *
-     * @Override
-     * @name GetAssetUrl
-     * @access public
-     * @return String  asset url
+     * @return string  asset url
      */
     public function get_asset_url()
     {
@@ -96,11 +89,8 @@ class StyleAsset extends AbstractAsset
     /**
      * Get File Url
      *
-     * @Override
-     * @name GetFileUrl
-     * @access protected
-     * @param String  $file filename
-     * @return String  full url with file
+     * @param string  $file filename
+     * @return string  full url with file
      */
     protected function get_file_url($file)
     {
@@ -113,11 +103,8 @@ class StyleAsset extends AbstractAsset
     /**
      * Minify Asset Data
      *
-     * @Override
-     * @name Minify
-     * @access protected
-     * @param String  $data file contents
-     * @return String  minified file contents
+     * @param string  $data file contents
+     * @return string  minified file contents
      */
     protected function minify($data)
     {
@@ -127,10 +114,8 @@ class StyleAsset extends AbstractAsset
     /**
      * Parse Asset File and replace key markers
      *
-     * @name Parse
-     * @access protected
-     * @param String  $data file contents
-     * @return String  parsed file contents
+     * @param string  $data file contents
+     * @return string  parsed file contents
      */
     protected function parse_asset_file($data)
     {

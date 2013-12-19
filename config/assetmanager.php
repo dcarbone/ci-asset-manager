@@ -153,7 +153,7 @@ $config['force_curl'] = true;
 $config['groups']['jquery'] = array(
     'scripts' => array(
         array(
-            "dev_file" => 'http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js',
+            "file" => 'http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js',
             "minify" => false,
             "cache" => false,
             "name" => "jquery"
@@ -168,7 +168,7 @@ $config['groups']['jquery'] = array(
 $config['groups']['jqueryui'] = array(
     "scripts" => array(
         array(
-            "dev_file" => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js",
+            "file" => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js",
             "name" => 'jqueryui',
             "minify" => false,
             "cache" => false,
@@ -184,33 +184,33 @@ $config['groups']['jqueryui'] = array(
 $config['groups']['default'] = array(
     'styles' => array(
         array(
-            "dev_file" => 'reset.css',
+            "file" => 'reset.css',
             "name" => "reset"
         ),
         array(
-            "dev_file" => 'grid.css',
+            "file" => 'grid.css',
             "name" => "grid"
         ),
         array(
-            "dev_file" => 'basic.css',
+            "file" => 'basic.css',
             "name" => "basic"
         )
     ),
     'scripts' => array(
         array(
-            "dev_file" => 'underscore.js',
+            "file" => 'underscore.js',
             "cache" => false,
             "minify" => false,
             "name" => "underscore"
         ),
         array(
-            "dev_file" => 'backbone.js',
+            "file" => 'backbone.js',
             "cache" => false,
             "minify" => false,
             'name' => 'backbone'
         ),
         array(
-            "dev_file" => "setup.js",
+            "file" => "setup.js",
             "name" => "setup"
         )
     ),

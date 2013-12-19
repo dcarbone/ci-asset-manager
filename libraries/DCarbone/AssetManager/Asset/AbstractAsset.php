@@ -1,21 +1,21 @@
 <?php namespace DCarbone\AssetManager\Asset;
-/*
-    AbstractAsset Class for AssetManager CodeIgniter Library
-    Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
+    /*
+        AbstractAsset Class for AssetManager CodeIgniter Library
+        Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+        This program is free software: you can redistribute it and/or modify
+        it under the terms of the GNU Affero General Public License as
+        published by the Free Software Foundation, either version 3 of the
+        License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+        This program is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+        You should have received a copy of the GNU Affero General Public License
+        along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     */
 
 /**
  * Class AbstractAsset
@@ -34,43 +34,27 @@ abstract class AbstractAsset
     /** @var bool */
     public $cacheable = true;
     /** @var string */
-    public $dev_file = null;
+    public $file = null;
     /** @var string */
-    public $dev_cache_file = null;
+    public $cached_file = null;
     /** @var string */
-    public $dev_cache_file_min = null;
-    /** @var string */
-    public $prod_file = null;
-    /** @var string */
-    public $prod_cache_file = null;
-    /** @var string */
-    public $prod_cache_file_min = null;
+    public $cached_file_min = null;
     /** @var bool */
     public $minify_able = true;
     /** @var string */
     public $name = null;
     /** @var string */
-    public $dev_file_path = null;
+    public $file_path = null;
     /** @var string */
-    public $dev_file_url = null;
+    public $file_url = null;
     /** @var string */
-    public $dev_file_name = null;
-    /** @var string */
-    public $prod_file_path = null;
-    /** @var string */
-    public $prod_file_url = null;
-    /** @var string */
-    public $prod_file_name = null;
+    public $file_name = null;
     /** @var \DateTime */
-    public $dev_last_modified = null;
-    /** @var \DateTime */
-    public $prod_last_modified = null;
+    public $file_last_modified = null;
     /** @var array */
     public $requires = array();
     /** @var bool */
-    public $dev_is_remote = false;
-    /** @var bool */
-    public $prod_is_remote = false;
+    public $file_is_remote = false;
     /** @var array */
     protected $config = array();
 
@@ -100,10 +84,11 @@ abstract class AbstractAsset
             switch($k)
             {
                 case 'group' :
+                    $k = 'groups';
                 case 'groups' :
                     if (is_string($v))
                         $v = array($v);
-                    
+
                 default : $this->$k = $v;
             }
         }
@@ -116,47 +101,23 @@ abstract class AbstractAsset
      */
     protected function validate()
     {
-        if ($this->dev_file === '' && $this->prod_file === '')
+        if ($this->file === '')
         {
-            $this->_failure(array('details' => 'You have tried to Add an asset to Asset Manager with undefined "$dev_file" and "$prod_file" values!'));
+            $this->file_path = false;
+            $this->file_url = false;
+            $this->_failure(array('details' => 'You have tried to Add an asset to Asset Manager with undefined "$file" values!'));
             return false;
         }
 
-        if ($this->dev_file === '')
+        if ($this->file_exists($this->file))
         {
-            $this->dev_file_path = false;
-            $this->dev_file_url = false;
-        }
-        else if ($this->file_exists($this->dev_file, 'dev'))
-        {
-            $this->dev_file_path = $this->get_file_path($this->dev_file);
-            $this->dev_file_url = $this->get_file_url($this->dev_file);
-        }
-        else
-        {
-            $this->_failure(array('details' => 'You have specified an invalid file. FileName: "'.$this->dev_file.'"'));
-            return false;
+            $this->file_path = $this->get_file_path($this->file);
+            $this->file_url = $this->get_file_url($this->file);
+            return true;
         }
 
-        if ($this->prod_file === '')
-        {
-            $this->prod_file_path = false;
-            $this->prod_file_url = false;
-        }
-        else
-        {
-            if ($this->file_exists($this->prod_file, 'prod'))
-            {
-                $this->prod_file_path = $this->get_file_path($this->prod_file);
-                $this->prod_file_url = $this->get_file_url($this->prod_file);
-            }
-            else
-            {
-                $this->_failure(array('details' => 'You have specified an invalid file. FileName: "'.$this->prod_file.'"'));
-                return false;
-            }
-        }
-        return true;
+        $this->_failure(array('details' => 'You have specified an invalid file. FileName: "'.$this->file.'"'));
+        return false;
     }
 
     /**
@@ -262,10 +223,7 @@ abstract class AbstractAsset
     public function get_name()
     {
         if ($this->name === null || $this->name === '')
-        {
-            $this->name = $this->get_prod_file_name();
-            if ($this->name === '') $this->name = $this->get_dev_file_name();
-        }
+            $this->name = $this->get_file_name();
 
         return $this->name;
     }
@@ -273,73 +231,36 @@ abstract class AbstractAsset
     /**
      * @return mixed|null|string
      */
-    public function get_dev_file_name()
+    public function get_file_name()
     {
-        if ($this->dev_file_name === null)
+        if ($this->file_name === null)
         {
-            $this->dev_file_name = '';
-            if ($this->dev_file !== '')
+            $this->file_name = '';
+            if ($this->file !== '')
             {
-                $ex = explode('/', $this->dev_file);
-                $this->dev_file_name = end($ex);
+                $ex = explode('/', $this->file);
+                $this->file_name = end($ex);
             }
         }
-        return $this->dev_file_name;
-    }
-
-    /**
-     * Get File Name of File
-     *
-     * @return string
-     */
-    public function get_prod_file_name()
-    {
-        if ($this->prod_file_name === null)
-        {
-            $this->prod_file_name = '';
-            if ($this->prod_file !== '')
-            {
-                $ex = explode('/', $this->prod_file);
-                $this->prod_file_name = end($ex);
-            }
-        }
-        return $this->prod_file_name;
+        return $this->file_name;
     }
 
     /**
      * @return \DateTime
      */
-    public function get_prod_date_modified()
+    public function get_file_date_modified()
     {
-        if ($this->prod_last_modified === null)
+        if ($this->file_last_modified === null)
         {
-            if ($this->prod_file_path === null || $this->prod_file_path === false)
-                $this->prod_last_modified = false;
-            else if ($this->prod_is_remote === false && is_string($this->prod_file_path))
-                $this->prod_last_modified = new \DateTime('@'.(string)filemtime($this->prod_file_path), static::$date_time_zone);
+            if ($this->file_path === null || $this->file_path === false)
+                $this->file_last_modified = false;
+            else if ($this->file_is_remote === false && is_string($this->file_path))
+                $this->file_last_modified = new \DateTime('@'.(string)filemtime($this->file_path), static::$date_time_zone);
             else
-                $this->prod_last_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
+                $this->file_last_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
         }
 
-        return $this->prod_last_modified;
-    }
-
-    /**
-     * @return \DateTime
-     */
-    public function get_dev_date_modified()
-    {
-        if ($this->dev_last_modified === null)
-        {
-            if ($this->dev_file_path === null || $this->dev_file_path === false)
-                $this->dev_last_modified = false;
-            else if ($this->dev_is_remote === false && is_string($this->dev_file_path))
-                $this->dev_last_modified = new \DateTime('@'.(string)filemtime($this->dev_file_path), static::$date_time_zone);
-            else
-                $this->dev_last_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
-        }
-
-        return $this->dev_last_modified;
+        return $this->file_last_modified;
     }
 
     /**
@@ -413,11 +334,9 @@ abstract class AbstractAsset
     }
 
     /**
-     * Get src for asset
-     *
      * @return string
      */
-    public function get_prod_src()
+    public function get_file_src()
     {
         if ($this->can_be_cached())
         {
@@ -429,25 +348,7 @@ abstract class AbstractAsset
                 return $url;
         }
 
-        return $this->prod_file_url;
-    }
-
-    /**
-     * @return string
-     */
-    public function get_dev_src()
-    {
-        if ($this->can_be_cached())
-        {
-            $minify = (!$this->is_dev() && $this->minify_able);
-            $this->create_cache();
-            $url = $this->get_cached_file_url($minify);
-
-            if ($url !== false)
-                return $url;
-        }
-
-        return $this->dev_file_url;
+        return $this->file_url;
     }
 
     /**
@@ -457,8 +358,8 @@ abstract class AbstractAsset
      */
     public function get_file_version()
     {
-        $file = (($this->is_dev()) ? $this->dev_file_path : $this->prod_file_path);
-        if ($file === null ) $file = $this->dev_file_path;
+        $file = $this->file_path;
+        if ($file === null ) $file = $this->file_path;
 
         if (preg_match('#^(http://|https://|//)#i', $file))
             return '?ver=19700101';
@@ -470,29 +371,22 @@ abstract class AbstractAsset
      * Determine if File Exists
      *
      * @param string  $file file name
-     * @param string  $type asset type
      * @return bool
      */
-    protected function file_exists($file, $type)
+    protected function file_exists($file)
     {
         if (preg_match('#^(http://|https://|//)#i', $file))
-        {
-            switch($type)
-            {
-                case 'dev' : $this->dev_is_remote = true; break;
-                case 'prod' : $this->prod_is_remote = true; break;
-            }
-            return true;
-        }
-        $filepath = $this->get_asset_path().$file;
+            return $this->file_is_remote = true;
 
-        if (!file_exists($filepath))
+        $file_path = $this->get_asset_path().$file;
+
+        if (!file_exists($file_path))
         {
             $this->_failure(array('details' => 'Could not find file at \'{$filepath}\''));
             return false;
         }
 
-        if (!is_readable($filepath))
+        if (!is_readable($file_path))
         {
             $this->_failure(array('details' => 'Could not read asset file at \'{$filepath}\''));
             return false;
@@ -510,13 +404,11 @@ abstract class AbstractAsset
     public function get_cached_file_url($minified = false)
     {
         if ($minified === false && $this->cache_file_exists($minified))
-        {
             return $this->get_cache_url().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension;
-        }
-        else if ($minified === true && $this->cache_file_exists($minified))
-        {
+
+
+        if ($minified === true && $this->cache_file_exists($minified))
             return $this->get_cache_url().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension;
-        }
 
         return false;
     }
@@ -530,13 +422,10 @@ abstract class AbstractAsset
     public function get_cached_file_path($minified = false)
     {
         if ($minified === false && $this->cache_file_exists($minified))
-        {
             return $this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension;
-        }
-        else if ($minified === true && $this->cache_file_exists($minified))
-        {
+
+        if ($minified === true && $this->cache_file_exists($minified))
             return $this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension;
-        }
 
         return false;
     }
@@ -549,18 +438,18 @@ abstract class AbstractAsset
      */
     protected function cache_file_exists($minified = false)
     {
-        $Parsed = $this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension;
-        $Parsed_minified = $this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension;
+        $parsed = $this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension;
+        $parsed_minified = $this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension;
 
         if ($minified === false)
         {
-            if (!file_exists($Parsed))
+            if (!file_exists($parsed))
             {
                 $this->_failure(array('details' => 'Could not find file at \'{$Parsed}\''));
                 return false;
             }
 
-            if (!is_readable($Parsed))
+            if (!is_readable($parsed))
             {
                 $this->_failure(array('details' => 'Could not read asset file at \'{$Parsed}\''));
                 return false;
@@ -568,13 +457,13 @@ abstract class AbstractAsset
         }
         else
         {
-            if (!file_exists($Parsed_minified))
+            if (!file_exists($parsed_minified))
             {
                 $this->_failure(array('details' => 'Could not find file at \'{$Parsed_minified}\''));
                 return false;
             }
 
-            if (!is_readable($Parsed_minified))
+            if (!is_readable($parsed_minified))
             {
                 $this->_failure(array('details' => 'Could not read asset file at \'{$Parsed_minified}\''));
                 return false;
@@ -597,10 +486,7 @@ abstract class AbstractAsset
         $_create_parsed_cache = false;
         $_create_parsed_min_cache = false;
 
-        if ($this->is_dev())
-            $modified = $this->get_dev_date_modified();
-        else
-            $modified = $this->get_prod_date_modified();
+        $modified = $this->get_file_date_modified();
 
         $parsed = $this->get_cached_file_path(false);
         $parsed_min = $this->get_cached_file_path(true);
@@ -645,16 +531,8 @@ abstract class AbstractAsset
         if ($_create_parsed_cache === false && $_create_parsed_min_cache === false)
             return true;
 
-        if ($this->prod_file_path !== false && $this->prod_file_path !== null)
-        {
-            $ref = $this->prod_file_path;
-            $remote = $this->prod_is_remote;
-        }
-        else
-        {
-            $ref = $this->dev_file_path;
-            $remote = $this->dev_is_remote;
-        }
+        $ref = $this->file_path;
+        $remote = $this->file_is_remote;
 
         if($remote || $this->config['force_curl'])
         {
@@ -698,12 +576,12 @@ abstract class AbstractAsset
 
         if ($_create_parsed_cache === true)
         {
-$comment = <<<EOD
+            $comment = <<<EOD
 /*
 |--------------------------------------------------------------------------
 | {$this->get_name()}
 |--------------------------------------------------------------------------
-| Last Modified : {$this->get_dev_date_modified()->format('Y m d')}
+| Last Modified : {$this->get_file_date_modified()->format('Y m d')}
 */
 EOD;
             $parsed_fopen = @fopen($this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension, 'w');
@@ -766,22 +644,12 @@ EOD;
     /**
      * Get Asset File Contents
      *
-     * @name _GetContents
-     * @access private
      * @return string;
      */
     private function _get_asset_contents()
     {
-        if ($this->prod_file_path !== false && $this->prod_file_path !== null)
-        {
-            $ref = $this->prod_file_path;
-            $remote = $this->prod_is_remote;
-        }
-        else
-        {
-            $ref = $this->dev_file_path;
-            $remote = $this->dev_is_remote;
-        }
+        $ref = $this->file_path;
+        $remote = $this->file_is_remote;
 
         if($remote || $this->config['force_curl'])
         {
@@ -827,7 +695,7 @@ EOD;
         if (function_exists('log_message'))
             log_message('error', 'Asset Manager: "'.$args['details'].'"');
 
-       $callback = $this->get_error_callback();
+        $callback = $this->get_error_callback();
         if (is_callable($callback))
             return $callback($args);
 
@@ -835,13 +703,13 @@ EOD;
     }
 
     /**
-    * IsUrl
-    * Checks if the provided string is a URL. Allows for port, path and query string validations.
-    * This should probably be moved into a helper file, but I hate to Add a whole new file for
-    * one little 2-line function.
-    * @param    $string string to be checked
-    * @return   boolean
-    */
+     * IsUrl
+     * Checks if the provided string is a URL. Allows for port, path and query string validations.
+     * This should probably be moved into a helper file, but I hate to Add a whole new file for
+     * one little 2-line function.
+     * @param    $string string to be checked
+     * @return   boolean
+     */
     public static function is_url($string)
     {
         $pattern = '@(https?://([-\w\.]+)+(:\d+)?(/([\w/_\.]*(\?\S+)?)?)?)@';

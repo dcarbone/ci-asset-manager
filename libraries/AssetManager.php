@@ -300,17 +300,16 @@ class AssetManager
      * Add Script File
      *
      * @param array $params
-     * @param string $keyName
+     * @param string $key_name
      * @return void
      */
-    public function add_script_file(array $params, $keyName = '')
+    public function add_script_file(array $params, $key_name = '')
     {
         $defaults = array(
-            'dev_file' => '',
-            'prod_file' => '',
+            'file' => '',
             'minify' => true,
             'cache' => true,
-            'name' => (is_numeric($keyName) ? '' : $keyName),
+            'name' => (is_numeric($key_name) ? '' : $key_name),
             'group' => array('default'),
             'requires' => array()
         );
@@ -319,9 +318,7 @@ class AssetManager
         foreach($defaults as $k=>$v)
         {
             if (!isset($params[$k]))
-            {
                 $params[$k] = $v;
-            }
         }
 
         $params['minify'] = ($params['minify'] && $this->minify_scripts);
@@ -336,24 +333,16 @@ class AssetManager
             foreach($groups as $group)
             {
                 if (!array_key_exists($group, $this->groups))
-                {
                     $this->groups[$group] = array('styles' => array(), 'scripts' => array());
-                }
 
                 if (!in_array($name, $this->groups[$group]['scripts']))
-                {
                     $this->groups[$group]['scripts'][] = $name;
-                }
+            }
 
-            }
             if (!array_key_exists($name, $this->scripts))
-            {
                 $this->scripts[$name] = $asset;
-            }
             else
-            {
                 $this->scripts[$name]->add_groups($groups);
-            }
         }
     }
 
@@ -367,8 +356,7 @@ class AssetManager
     public function add_style_file(array $params, $keyName = '')
     {
         $defaults = array(
-            'dev_file'  => '',
-            'prod_file' => '',
+            'file'  => '',
             'media'     => 'all',
             'minify'    => true,
             'cache'     => true,
@@ -423,11 +411,7 @@ class AssetManager
      * @param array  $include_groups array of groups to include with this group
      * @return void
      */
-    public function add_asset_group(
-        $group_name = '',
-        array $scripts = array(),
-        array $styles = array(),
-        array $include_groups = array())
+    public function add_asset_group($group_name = '', array $scripts = array(), array $styles = array(), array $include_groups = array())
     {
         // Determine if this is a new group or Adding to one that already exists;
         if (!array_key_exists($group_name, $this->groups))
@@ -448,10 +432,10 @@ class AssetManager
         }
 
         // Parse our script files
-        foreach($scripts as $scriptName=>$asset)
+        foreach($scripts as $script_name=>$asset)
         {
             $parsed = $this->parse_asset($asset, $group_name);
-            $this->add_script_file($parsed, $scriptName);
+            $this->add_script_file($parsed, $script_name);
         }
         // Do this so we are sure to have a clean $asset variable
         unset($asset);
@@ -556,16 +540,16 @@ class AssetManager
 
         if ((is_string($names) && $names == '') || (is_array($names) && count($names) < 1))
             return false;
-        
+
         if (is_string($names))
             $names = array($names);
-        
+
         foreach($names as $name)
         {
             if (array_key_exists($name, $this->styles) && !array_key_exists($name, $this->loaded['styles']))
                 $this->loaded['styles'][$name] = $this->styles[$name]->get_requires();
         }
-        
+
         return true;
     }
 
@@ -633,38 +617,39 @@ class AssetManager
                 asort($required, SORT_NUMERIC);
                 $required = array_reverse($required);
                 $reqs = array_keys($required);
-                ${'Loaded_'.$type} = array_unique(array_merge($reqs, array_keys($this->loaded[$type])));
+                ${'loaded_'.$type} = array_unique(array_merge($reqs, array_keys($this->loaded[$type])));
             }
             else
             {
-                ${'Loaded_'.$type} = array_keys($this->loaded[$type]);
+                ${'loaded_'.$type} = array_keys($this->loaded[$type]);
             }
         }
 
+        // This will hold the final output string.
+        $output = '';
         if ($this->dev === false && $this->combine === true)
         {
-            $_S = (($this->styles_output === false) ? $loaded_styles : array());
-            $_S2 = (($this->scripts_output === false) ? $loaded_scripts : array());
-            $this->_generate_complex_output($_S, $_S2);
+            $style_assets = (($this->styles_output === false) ? $loaded_styles : array());
+            $script_assets = (($this->scripts_output === false) ? $loaded_scripts : array());
+            $output .= $this->_generate_complex_output($style_assets, $script_assets);
         }
         else if ($this->dev === true || $this->combine === false)
         {
-            $this->output_styles($loaded_styles);
+            $output .= $this->output_styles($loaded_styles);
             $this->styles_output = true;
 
-            $this->output_scripts($loaded_scripts);
+            $output .= $this->output_scripts($loaded_scripts);
             $this->scripts_output = true;
         }
-
+        return $output;
     }
 
     /**
      * Generate Complex Output
      *
-     * @name _GenerateComplexOutput
-     * @access protected
      * @param array  array of styles to Output
      * @param array  array of scripts to Output
+     * @return string
      */
     protected function _generate_complex_output(array $styles, array $scripts)
     {
@@ -693,11 +678,13 @@ class AssetManager
 
         $complex = new ComplexOutput($_styles, $_scripts, $this->_get_config());
 
+        $output = '';
+
         if ($this->styles_output === false)
         {
             $styleOutput = $complex->output_styles();
             if ($styleOutput === false)
-                $this->output_styles(array_keys($styles));
+                $output .= $this->output_styles(array_keys($styles));
 
             $this->styles_output = true;
         }
@@ -706,10 +693,11 @@ class AssetManager
         {
             $scriptOutput = $complex->output_scripts();
             if ($scriptOutput === false)
-                $this->output_scripts(array_keys($scripts));
+                $output .= $this->output_scripts(array_keys($scripts));
 
             $this->scripts_output = true;
         }
+        return $output;
     }
 
     /**
