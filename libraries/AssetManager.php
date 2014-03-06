@@ -17,7 +17,7 @@ use DCarbone\AssetManager\ComplexOutput;
 
 /*
     Asset Management Library for CodeIgniter
-    Copyright (C) 2012-2014  Daniel Carbone (https://github.com/dcarbone)
+    Copyright (C) 2012-2014 Daniel Carbone (https://github.com/dcarbone)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
@@ -572,7 +572,7 @@ class AssetManager
 
         foreach($groups as $group)
         {
-            if (array_key_exists($group, $this->groups) && !array_key_exists($group, $this->loaded['groups']))
+            if (array_key_exists($group, $this->groups) && array_key_exists('groups', $this->groups[$group]) && !array_key_exists($group, $this->loaded['groups']))
             {
                 foreach($this->groups[$group]['groups'] as $rgroup)
                 {
