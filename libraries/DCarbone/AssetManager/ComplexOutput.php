@@ -2,7 +2,7 @@
 
 /*
     Complex Output Class for Asset Management Library
-    Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
+    Copyright (C) 2012-2014  Daniel Carbone (https://github.com/dcarbone)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
@@ -63,19 +63,19 @@ class ComplexOutput
             foreach($arr as $a)
             {
                 $return[basename($a)] = array(
-                    "path" => $a,
-                    "datetime" => new \DateTime("@".(string)filemtime($a))
+                    'path' => $a,
+                    'datetime' => new \DateTime('@'.(string)filemtime($a))
                 );
             }
             return $return;
         };
-        $style_files = $build_name_array(glob($this->_config['cache_path']."*.css"));
-        $script_files = $build_name_array(glob($this->_config['cache_path']."*.js"));
+        $style_files = $build_name_array(glob($this->_config['cache_path'].'*.css'));
+        $script_files = $build_name_array(glob($this->_config['cache_path'].'*.js'));
 
         return array(
             'styles' => $style_files,
-            "scripts" => $script_files,
-            "all" => array_merge($style_files + $script_files)
+            'scripts' => $script_files,
+            'all' => array_merge($style_files + $script_files)
         );
     }
 
@@ -90,27 +90,27 @@ class ComplexOutput
     {
         switch($type)
         {
-            case "style" :
+            case 'style' :
                 if (array_key_exists($file, $this->_cache_files['styles']))
                 {
                     return $this->_cache_files['styles'][$file];
                 }
                 return false;
-            break;
-            case "script" :
+                break;
+            case 'script' :
                 if (array_key_exists($file, $this->_cache_files['scripts']))
                 {
                     return $this->_cache_files['scripts'][$file];
                 }
                 return false;
-            break;
+                break;
             default :
                 if (array_key_exists($file, $this->_cache_files['all']))
                 {
                     return $this->_cache_files['all'][$file];
                 }
                 return false;
-            break;
+                break;
         }
     }
 

@@ -17,7 +17,7 @@ use DCarbone\AssetManager\ComplexOutput;
 
 /*
     Asset Management Library for CodeIgniter
-    Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
+    Copyright (C) 2012-2014  Daniel Carbone (https://github.com/dcarbone)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
@@ -119,7 +119,7 @@ class AssetManager
         /** @var $CFG CI_Config */
         global $CFG;
 
-        if (!($CFG instanceof CI_Config))
+        if (!($CFG instanceof \CI_Config))
             throw new Exception('Unable to load CI_Config global');
 
         // Set internal reference to global $CFG CI_Config instance
@@ -321,7 +321,7 @@ class AssetManager
                 $params[$k] = $v;
         }
 
-        $params['minify'] = ($params['minify'] && $this->minify_scripts);
+        $params['minify_able'] = ($params['minify'] && $this->minify_scripts);
 
         $asset = new ScriptAsset($this->_get_config(), $params);
 
@@ -372,7 +372,7 @@ class AssetManager
                 $params[$k] = $v;
         }
 
-        $params['minify'] = ($params['minify'] && $this->minify_styles);
+        $params['minify_able'] = ($params['minify'] && $this->minify_styles);
 
         // Do a quick sanity check on $group
         if (is_string($params['group']) && $params['group'] !== '')

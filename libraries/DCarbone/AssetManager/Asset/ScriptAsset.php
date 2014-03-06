@@ -2,7 +2,7 @@
 
 /*
     Script Asset Class for AssetManager Library
-    Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
+    Copyright (C) 2012-2014  Daniel Carbone (https://github.com/dcarbone)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
