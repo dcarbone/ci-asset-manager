@@ -88,30 +88,16 @@ class ComplexOutput
      */
     private function _cache_file_exists($file = "", $type = "")
     {
-        switch($type)
-        {
-            case 'style' :
-                if (array_key_exists($file, $this->_cache_files['styles']))
-                {
-                    return $this->_cache_files['styles'][$file];
-                }
-                return false;
-                break;
-            case 'script' :
-                if (array_key_exists($file, $this->_cache_files['scripts']))
-                {
-                    return $this->_cache_files['scripts'][$file];
-                }
-                return false;
-                break;
-            default :
-                if (array_key_exists($file, $this->_cache_files['all']))
-                {
-                    return $this->_cache_files['all'][$file];
-                }
-                return false;
-                break;
-        }
+        if ($type === 'style' && array_key_exists($file, $this->_cache_files['styles']))
+            return $this->_cache_files['styles'][$file];
+
+        if ($type === 'script' && array_key_exists($file, $this->_cache_files['scripts']))
+            return $this->_cache_files['scripts'][$file];
+
+        if (array_key_exists($file, $this->_cache_files['all']))
+            return $this->_cache_files['all'][$file];
+
+        return false;
     }
 
     /**
@@ -161,9 +147,8 @@ class ComplexOutput
             foreach($this->_styles as $file=>$atts)
             {
                 if (!isset($medias[$atts['media']]))
-                {
                     $medias[$atts['media']] = array();
-                }
+
                 $surl = $this->_config['cache_url'].$file;
                 $medias[$atts['media']][] = "\n<link rel='stylesheet' type='text/css' media='{$atts['media']}' href='{$surl}?={$atts['datetime']->format("Ymd")}' />";
             }

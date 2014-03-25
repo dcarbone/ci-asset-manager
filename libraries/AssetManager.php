@@ -1,14 +1,28 @@
 <?php
+
+// Define a few file path constants
+define('ASSET_MANAGER_PATH', realpath(__DIR__.DIRECTORY_SEPARATOR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager').DIRECTORY_SEPARATOR);
+define('ASSET_MANAGER_ASSET_CLASSPATH', ASSET_MANAGER_PATH.'Asset'.DIRECTORY_SEPARATOR);
+
 if (!class_exists('CssMin'))
     require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'CssMin.php');
 
-if (!class_exists('JSMin'))
-    require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'JSMin.php');
+// Ensure JShrink is loaded
+if (!class_exists('\JShrink\Minifier'))
+    require_once 'JShrink'.DIRECTORY_SEPARATOR.'Minifier.php';
 
-require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager'.DIRECTORY_SEPARATOR.'Asset'.DIRECTORY_SEPARATOR.'AbstractAsset.php');
-require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager'.DIRECTORY_SEPARATOR.'Asset'.DIRECTORY_SEPARATOR.'ScriptAsset.php');
-require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager'.DIRECTORY_SEPARATOR.'Asset'.DIRECTORY_SEPARATOR.'StyleAsset.php');
-require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager'.DIRECTORY_SEPARATOR.'ComplexOutput.php');
+// Require and load the Less Autoloader class
+if (!class_exists('Less_Autoloader'))
+{
+    require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'Less'.DIRECTORY_SEPARATOR.'Autoloader.php');
+    Less_Autoloader::register();
+}
+
+// Require class files
+require_once ASSET_MANAGER_ASSET_CLASSPATH.'AbstractAsset.php';
+require_once ASSET_MANAGER_ASSET_CLASSPATH.'ScriptAsset.php';
+require_once ASSET_MANAGER_ASSET_CLASSPATH.'StyleAsset.php';
+require_once ASSET_MANAGER_PATH.'ComplexOutput.php';
 
 use DCarbone\AssetManager\Asset\AbstractAsset;
 use DCarbone\AssetManager\Asset\ScriptAsset;

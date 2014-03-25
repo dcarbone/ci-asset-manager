@@ -65,17 +65,6 @@ $config['cache_dir'] = 'cache';
 
 /*
 |--------------------------------------------------------------------------
-| Scripts View Directory
-|--------------------------------------------------------------------------
-|
-| Path to the Javscript View Directory. Must be writable. Relative to the asset_dir.
-|
-*/
-
-$config['script_view_dir'] = $config['script_dir'].'/views';
-
-/*
-|--------------------------------------------------------------------------
 | Base URL
 |--------------------------------------------------------------------------
 |
@@ -153,10 +142,10 @@ $config['force_curl'] = true;
 $config['groups']['jquery'] = array(
     'scripts' => array(
         array(
-            "file" => 'http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js',
-            "minify" => false,
-            "cache" => false,
-            "name" => "jquery"
+            'file' => '//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js',
+            'minify' => false,
+            'cache' => false,
+            'name' => 'jquery'
         )
     )
 );
@@ -166,13 +155,21 @@ $config['groups']['jquery'] = array(
 #--------------------------------------------------------------------------
 #
 $config['groups']['jqueryui'] = array(
-    "scripts" => array(
+    'scripts' => array(
         array(
-            "file" => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js",
-            "name" => 'jqueryui',
-            "minify" => false,
-            "cache" => false,
-            "requires" => array("jquery")
+            'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js',
+            'name' => 'jqueryui',
+            'minify' => false,
+            'cache' => false,
+            'requires' => array('jquery')
+        )
+    ),
+    'styles' => array(
+        array(
+            'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css',
+            'name' => 'jqueryui',
+            'minify' => false,
+            'cache' => false
         )
     )
 );
@@ -184,37 +181,39 @@ $config['groups']['jqueryui'] = array(
 $config['groups']['default'] = array(
     'styles' => array(
         array(
-            "file" => 'reset.css',
-            "name" => "reset"
+            'file' => 'reset.css',
+            'name' => 'reset'
         ),
         array(
-            "file" => 'grid.css',
-            "name" => "grid"
+            'file' => 'grid.css',
+            'name' => 'grid'
         ),
         array(
-            "file" => 'basic.css',
-            "name" => "basic"
+            'file' => 'basic.css',
+            'name' => 'basic'
         )
     ),
     'scripts' => array(
         array(
-            "file" => 'underscore.js',
-            "cache" => false,
-            "minify" => false,
-            "name" => "underscore"
+            'file' => 'underscore.js',
+            'cache' => false,
+            'minify' => false,
+            'name' => 'underscore'
         ),
         array(
-            "file" => 'backbone.js',
-            "cache" => false,
-            "minify" => false,
+            'file' => 'backbone.js',
+            'cache' => false,
+            'minify' => false,
             'name' => 'backbone'
         ),
         array(
-            "file" => "setup.js",
-            "name" => "setup"
+            'file' => 'setup.js',
+            'name' => 'setup',
+            'minify' => true,
+            'jshrink_options' => array()
         )
     ),
-    "groups" => array("jquery", "customjqueryui")
+    'groups' => array('jquery', 'jqueryui')
 );
 #
 # The group "default" will be included on every page.

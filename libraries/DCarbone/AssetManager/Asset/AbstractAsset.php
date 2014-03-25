@@ -32,7 +32,7 @@ abstract class AbstractAsset
     /** @var array */
     public $groups = array();
     /** @var bool */
-    public $cacheable = true;
+    public $cache = true;
     /** @var string */
     public $file = null;
     /** @var string */
@@ -127,7 +127,7 @@ abstract class AbstractAsset
      */
     public function can_be_cached()
     {
-        return $this->cacheable;
+        return $this->cache;
     }
 
     /**
@@ -382,13 +382,13 @@ abstract class AbstractAsset
 
         if (!file_exists($file_path))
         {
-            $this->_failure(array('details' => 'Could not find file at \'{$filepath}\''));
+            $this->_failure(array('details' => 'Could not find file at "'.$file_path.'"'));
             return false;
         }
 
         if (!is_readable($file_path))
         {
-            $this->_failure(array('details' => 'Could not read asset file at \'{$filepath}\''));
+            $this->_failure(array('details' => 'Could not read asset file at "'.$file_path.'"'));
             return false;
         }
 
@@ -494,15 +494,8 @@ abstract class AbstractAsset
         if ($parsed !== false)
         {
             $parsed_modified = $this->get_cached_date_modified($parsed);
-            if ($parsed_modified instanceof \DateTime)
-            {
-                if ($modified > $parsed_modified)
-                    $_create_parsed_cache = true;
-            }
-            else
-            {
+            if ($parsed_modified instanceof \DateTime && $modified > $parsed_modified)
                 $_create_parsed_cache = true;
-            }
         }
         else
         {
@@ -512,15 +505,8 @@ abstract class AbstractAsset
         if ($parsed_min !== false)
         {
             $parsed_modified = $this->get_cached_date_modified($parsed_min);
-            if ($parsed_modified instanceof \DateTime)
-            {
-                if ($modified > $parsed_modified)
-                    $_create_parsed_min_cache = true;
-            }
-            else
-            {
+            if ($parsed_modified instanceof \DateTime && $modified > $parsed_modified)
                 $_create_parsed_min_cache = true;
-            }
         }
         else
         {
@@ -566,9 +552,8 @@ abstract class AbstractAsset
             $min_fopen = fopen($this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension, 'w');
 
             if ($min_fopen === false)
-            {
                 return false;
-            }
+
             fwrite($min_fopen, $minified."\n");
             fclose($min_fopen);
             chmod($this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension, 0644);
@@ -576,14 +561,14 @@ abstract class AbstractAsset
 
         if ($_create_parsed_cache === true)
         {
-            $comment = <<<EOD
+            $comment = <<<COMMENT
 /*
 |--------------------------------------------------------------------------
 | {$this->get_name()}
 |--------------------------------------------------------------------------
 | Last Modified : {$this->get_file_date_modified()->format('Y m d')}
 */
-EOD;
+COMMENT;
             $parsed_fopen = @fopen($this->get_cache_path().\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension, 'w');
 
             if ($parsed_fopen === false)

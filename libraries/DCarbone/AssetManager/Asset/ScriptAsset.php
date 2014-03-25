@@ -1,5 +1,7 @@
 <?php namespace DCarbone\AssetManager\Asset;
 
+use JShrink\Minifier;
+
 /*
     Script Asset Class for AssetManager Library
     Copyright (C) 2012-2014  Daniel Carbone (https://github.com/dcarbone)
@@ -24,12 +26,19 @@
  */
 class ScriptAsset extends AbstractAsset
 {
+    /** @var array */
+    protected $jshrink_options = array();
+
     /**
      * Constructor
      */
     public function __construct(array $config, array $args)
     {
         parent::__construct($config, $args);
+
+        if (isset($args['jshrink_options']) && is_array($args['jshrink_options']))
+            $this->jshrink_options = $args['jshrink_options'];
+
         $this->extension = \AssetManager::$script_file_extension;
     }
 
@@ -125,7 +134,7 @@ class ScriptAsset extends AbstractAsset
      */
     protected function minify($data)
     {
-        return \JSMin::minify($data);
+        return Minifier::minify($data, $this->jshrink_options);
     }
 
     /**
@@ -140,6 +149,6 @@ class ScriptAsset extends AbstractAsset
 
         $replace_values = array_values(\AssetManager::$script_brackets);
 
-        return str_replace($replace_keys, $replace_values, $data);
+        return str_replace($replace_keys, $replace_values, $data)."\n;";
     }
 }
