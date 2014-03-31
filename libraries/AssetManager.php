@@ -232,9 +232,6 @@ class AssetManager
                 $this->{'set_'.$k}($v);
         }
 
-        $this->set_dev(false);
-        $this->set_combine(false);
-
         // set the default value for base_url from the config
         if($this->base_url === '')
             $this->set_base_url($CFG->item('base_url'));
