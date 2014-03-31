@@ -101,7 +101,7 @@ interface IAsset
     /**
      * @return mixed
      */
-    public function get_output();
+    public function generate_output();
 
     /**
      * @return string
@@ -128,6 +128,11 @@ interface IAsset
      * @return mixed
      */
     public function parse_asset_file($data);
+
+    /**
+     * @return string
+     */
+    public function get_extension();
 
     /**
      * @param string $data

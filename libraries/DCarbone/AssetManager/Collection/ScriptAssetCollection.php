@@ -26,7 +26,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
         foreach($this->output_assets as $asset_name)
         {
             if (isset($this[$asset_name]))
-                echo $this[$asset_name]->get_output();
+                echo $this[$asset_name]->generate_output();
         }
         return ob_get_clean();
     }

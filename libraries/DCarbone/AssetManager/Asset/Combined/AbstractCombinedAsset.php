@@ -31,7 +31,7 @@ abstract class AbstractCombinedAsset
     /**
      * @return string
      */
-    abstract public function get_output();
+    abstract public function generate_output();
 
     /**
      * @return string

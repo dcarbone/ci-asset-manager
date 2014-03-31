@@ -51,7 +51,7 @@ class StyleAssetCollection extends AbstractAssetCollection
                 foreach($this->style_medias[$media_type] as $asset_name)
                 {
                     if (isset($this[$asset_name]))
-                        echo $this[$asset_name]->get_output()."\n";
+                        echo $this[$asset_name]->generate_output()."\n";
                 }
             }
 
@@ -64,7 +64,7 @@ class StyleAssetCollection extends AbstractAssetCollection
             foreach($this->style_medias[$media_type] as $asset_name)
             {
                 if (isset($this[$asset_name]))
-                    echo $this[$asset_name]->get_output()."\n";
+                    echo $this[$asset_name]->generate_output()."\n";
             }
         }
 

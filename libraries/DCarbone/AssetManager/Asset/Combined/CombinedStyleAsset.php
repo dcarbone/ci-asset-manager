@@ -26,7 +26,7 @@ class CombinedStyleAsset extends AbstractCombinedAsset
     /**
      * @return string
      */
-    public function get_output()
+    public function generate_output()
     {
         $output = "<link rel='stylesheet' type='text/css'";
         $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_file_src());

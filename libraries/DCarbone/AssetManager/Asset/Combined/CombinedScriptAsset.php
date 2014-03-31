@@ -19,7 +19,7 @@ class CombinedScriptAsset extends AbstractCombinedAsset
      *
      * @return string  html Output
      */
-    public function get_output()
+    public function generate_output()
     {
         $output = "<script type='text/javascript' language='javascript'";
         $output .= " src='".str_ireplace(array("http:", "https:"), "", $this->get_file_src());

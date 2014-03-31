@@ -26,8 +26,6 @@ abstract class AbstractAsset implements IAsset
     /** @var bool */
     public $valid = true;
 
-    /** @var null */
-    public $extension = null;
     /** @var array */
     public $groups = array();
     /** @var bool */
@@ -48,12 +46,13 @@ abstract class AbstractAsset implements IAsset
     public $file_url = null;
     /** @var string */
     public $file_name = null;
-    /** @var \DateTime */
-    public $file_last_modified = null;
     /** @var array */
     public $requires = array();
     /** @var bool */
     public $file_is_remote = false;
+
+    /** @var \DateTime */
+    public $date_modified;
 
     /**
      * Constructor
@@ -65,6 +64,13 @@ abstract class AbstractAsset implements IAsset
     {
         $this->parse_args($asset_params);
         $this->valid = $this->validate();
+
+        if ($this->file_path === null || $this->file_path === false)
+            $this->date_modified = false;
+        else if ($this->file_is_remote === false && is_string($this->file_path))
+            $this->date_modified = new \DateTime('@'.(string)filemtime($this->file_path), \AssetManager::$DateTimeZone);
+        else
+            $this->date_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
     }
 
     /**
@@ -201,17 +207,7 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_file_date_modified()
     {
-        if ($this->file_last_modified === null)
-        {
-            if ($this->file_path === null || $this->file_path === false)
-                $this->file_last_modified = false;
-            else if ($this->file_is_remote === false && is_string($this->file_path))
-                $this->file_last_modified = new \DateTime('@'.(string)filemtime($this->file_path), \AssetManager::$DateTimeZone);
-            else
-                $this->file_last_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
-        }
-
-        return $this->file_last_modified;
+        return $this->date_modified;
     }
 
     /**
@@ -312,13 +308,7 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_file_version()
     {
-        $file = $this->file_path;
-        if ($file === null ) $file = $this->file_path;
-
-        if (preg_match('#^(http://|https://|//)#i', $file))
-            return '?ver=19700101';
-
-        return '?v='.date('Ymd', filemtime($file));
+        return $this->date_modified->format('Ymd');
     }
 
     /**
@@ -360,11 +350,11 @@ abstract class AbstractAsset implements IAsset
         $config = \AssetManager::get_config();
         
         if ($minified === false && $this->cache_file_exists($minified))
-            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension;
+            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension();
 
 
         if ($minified === true && $this->cache_file_exists($minified))
-            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension;
+            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension();
 
         return false;
     }
@@ -380,10 +370,10 @@ abstract class AbstractAsset implements IAsset
         $config = \AssetManager::get_config();
         
         if ($minified === false && $this->cache_file_exists($minified))
-            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension;
+            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension();
 
         if ($minified === true && $this->cache_file_exists($minified))
-            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension;
+            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension();
 
         return false;
     }
@@ -398,8 +388,8 @@ abstract class AbstractAsset implements IAsset
     {
         $config = \AssetManager::get_config();
         
-        $parsed = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension;
-        $parsed_minified = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension;
+        $parsed = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension();
+        $parsed_minified = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension();
 
         if ($minified === false)
         {
@@ -511,26 +501,26 @@ abstract class AbstractAsset implements IAsset
             // If we successfully got the file's contents
             $minified = $this->minify($contents);
 
-            $min_fopen = fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension, 'w');
+            $min_fopen = fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension(), 'w');
 
             if ($min_fopen === false)
                 return false;
 
             fwrite($min_fopen, $minified."\n");
             fclose($min_fopen);
-            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->extension, 0644);
+            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension(), 0644);
         }
 
         if ($_create_parsed_cache === true)
         {
-            $parsed_fopen = @fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension, 'w');
+            $parsed_fopen = @fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension(), 'w');
 
             if ($parsed_fopen === false)
                 return false;
 
             fwrite($parsed_fopen, $contents."\n");
             fclose($parsed_fopen);
-            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->extension, 0644);
+            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension(), 0644);
         }
         return true;
     }

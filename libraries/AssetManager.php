@@ -26,6 +26,7 @@ require_once ASSET_MANAGER_ASSET_CLASSPATH.'IAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'AbstractAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'ScriptAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'StyleAsset.php';
+require_once ASSET_MANAGER_ASSET_CLASSPATH.'LessAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'AbstractCombinedAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedScriptAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedStyleAsset.php';
@@ -231,6 +232,9 @@ class AssetManager
                 $this->{'set_'.$k}($v);
         }
 
+        $this->set_dev(false);
+        $this->set_combine(false);
+
         // set the default value for base_url from the config
         if($this->base_url === '')
             $this->set_base_url($CFG->item('base_url'));
@@ -253,7 +257,7 @@ class AssetManager
         $this->set_style_path($this->asset_path . $this->style_dir . DIRECTORY_SEPARATOR);
         $this->set_less_path($this->asset_path . $this->less_dir . DIRECTORY_SEPARATOR);
 
-            // Define the cache url and path
+        // Define the cache url and path
         $this->set_cache_url($this->asset_url . str_replace('\\', '/', $this->cache_dir) . '/');
         $this->set_cache_path($this->asset_path . $this->cache_dir . DIRECTORY_SEPARATOR);
 
@@ -448,7 +452,6 @@ class AssetManager
      */
     public function add_less_file(array $params, $less_name = '')
     {
-        return;
         $defaults = array(
             'file'  => '',
             'media'     => 'all',
@@ -728,19 +731,81 @@ class AssetManager
      * @param array  array of scripts ot Output
      * @return string  html script elements
      */
-    protected function output_scripts(array $scripts)
+    public function generate_output_for_scripts(array $script_names)
     {
-        ob_start();
-        foreach($scripts as $script)
+        $this->ScriptAssetCollection->reset();
+        foreach($script_names as $script_name)
         {
-            if (array_key_exists($script, $this->scripts) && ($this->scripts[$script] instanceof ScriptAsset) === true)
-            {
-                echo $this->scripts[$script]->get_output();
-                echo "\n";
-            }
+            $this->ScriptAssetCollection->add_asset_to_output($script_name);
         }
 
-        return ob_get_clean();
+        return $this->ScriptAssetCollection->generate_output();
+    }
+
+    /**
+     * @param array $style_names
+     * @return string
+     */
+    public function generate_output_for_styles(array $style_names)
+    {
+        $this->StyleAssetCollection->reset();
+        foreach($style_names as $style_name)
+        {
+            $this->StyleAssetCollection->add_asset_to_output($style_name);
+        }
+
+        return $this->StyleAssetCollection->generate_output();
+    }
+
+    /**
+     * @param array $less_style_names
+     * @return string
+     */
+    public function generate_output_for_less_styles(array $less_style_names)
+    {
+        $this->LessAssetCollection->reset();
+        foreach($less_style_names as $less_style_name)
+        {
+            $this->LessAssetCollection->add_asset_to_output($less_style_name);
+        }
+
+        return $this->LessAssetCollection->generate_output();
+    }
+
+    /**
+     * @param string $script_name
+     * @return string
+     */
+    public function generate_output_for_script($script_name)
+    {
+        if (isset($this->ScriptAssetCollection[$script_name]))
+            return $this->ScriptAssetCollection[$script_name]->generate_output();
+
+        return null;
+    }
+
+    /**
+     * @param string $style_name
+     * @return string
+     */
+    public function generate_output_for_style($style_name)
+    {
+        if (isset($this->StyleAssetCollection[$style_name]))
+            return $this->StyleAssetCollection[$style_name]->generate_output();
+
+        return null;
+    }
+
+    /**
+     * @param string $less_style_name
+     * @return string
+     */
+    public function generate_output_for_less_style($less_style_name)
+    {
+        if (isset($this->LessAssetCollection[$less_style_name]))
+            return $this->LessAssetCollection[$less_style_name]->generate_output();
+
+        return null;
     }
 
     /**

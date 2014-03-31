@@ -24,26 +24,26 @@ class LessAsset extends AbstractAsset implements IAsset
     {
         parent::__construct($asset_params);
 
+        $config = \AssetManager::get_config();
+
         if (!isset(static::$LessParser))
         {
             $less_args = array(
-                'compress' => \AssetManager::get_config()['minify_styles'],
+                'compress' => $config['minify_styles'],
             );
 
             static::$LessParser = new \Less_Parser($less_args);
         }
-
-        $this->extension = \AssetManager::$less_file_extension;
     }
 
     /**
      * @return mixed
      */
-    public function get_output()
+    public function generate_output()
     {
         $output = "<link rel='stylesheet' type='text/css'";
         $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_file_src());
-        $output .= $this->get_file_version()."' media='{$this->media}' />";
+        $output .= '?v='.$this->get_file_version()."' media='{$this->media}' />";
 
         return $output;
     }
@@ -53,7 +53,8 @@ class LessAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_path()
     {
-        return \AssetManager::get_config()['less_path'];
+        $config = \AssetManager::get_config();
+        return $config['less_path'];
     }
 
     /**
@@ -61,31 +62,8 @@ class LessAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_url()
     {
-        return \AssetManager::get_config()['style_url'];
-    }
-
-    /**
-     * @internal param string $file
-     * @return string
-     */
-    public function get_file_path()
-    {
-        if (preg_match("#^(http://|https://|//)#i", $file))
-            return $file;
-
-        return $this->get_asset_path().$file;
-    }
-
-    /**
-     * @param string $file
-     * @return string
-     */
-    public function get_file_url($file)
-    {
-        if (preg_match("#^(http://|https://|//)#i", $file))
-            return $file;
-
-        return $this->get_asset_url().$file;
+        $config = \AssetManager::get_config();
+        return $config['less_url'];
     }
 
     /**
@@ -100,7 +78,7 @@ class LessAsset extends AbstractAsset implements IAsset
 
         $css = str_replace($replace_keys, $replace_values, $data)."\n";
 
-        \static::$LessParser->parse($css);
+        static::$LessParser->parse($css);
 
         return $css;
     }
@@ -112,9 +90,12 @@ class LessAsset extends AbstractAsset implements IAsset
      */
     public function create_cache()
     {
+        return false;
         if ($this->can_be_cached() === false)
             return false;
 
+        $config = \AssetManager::get_config();
+        
         $_create_parsed_cache = false;
         $_create_parsed_min_cache = false;
 
@@ -152,7 +133,7 @@ class LessAsset extends AbstractAsset implements IAsset
         $ref = $this->file_path;
         $remote = $this->file_is_remote;
 
-        if($remote || \AssetManager::get_config()['force_curl'])
+        if($remote || $config['force_curl'])
         {
             $ch = curl_init($ref);
             curl_setopt_array($ch, array(
@@ -257,9 +238,10 @@ class LessAsset extends AbstractAsset implements IAsset
     protected function _get_asset_contents()
     {
         $ref = $this->file_path;
-        $remote = $this->file_is_remote;
 
-        if($remote || \AssetManager::get_config()['force_curl'])
+        $config = \AssetManager::get_config();
+
+        if($this->file_is_remote || $config['force_curl'])
         {
             if (substr($ref, 0, 2) === '//')
             {
@@ -299,5 +281,13 @@ class LessAsset extends AbstractAsset implements IAsset
     public function minify($data)
     {
         // TODO: Implement minify() method.
+    }
+
+    /**
+     * @return string
+     */
+    public function get_extension()
+    {
+        // TODO: Implement get_extension() method.
     }
 }

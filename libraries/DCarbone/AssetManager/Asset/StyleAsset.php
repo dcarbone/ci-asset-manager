@@ -31,25 +31,13 @@ class StyleAsset extends AbstractAsset implements IAsset
     public $media;
 
     /**
-     * Constructor
-     *
-     * @param array $args
-     * @return \DCarbone\AssetManager\Asset\StyleAsset
-     */
-    public function __construct(array $args)
-    {
-        parent::__construct($args);
-        $this->extension = \AssetManager::$style_file_extension;
-    }
-
-    /**
      * @return string
      */
-    public function get_output()
+    public function generate_output()
     {
         $output = "<link rel='stylesheet' type='text/css'";
         $output .= " href='".str_ireplace(array("http:", "https:"), "", $this->get_file_src());
-        $output .= $this->get_file_version()."' media='{$this->media}' />";
+        $output .= '?v='.$this->get_file_version()."' media='{$this->media}' />";
 
         return $output;
     }
@@ -100,5 +88,13 @@ class StyleAsset extends AbstractAsset implements IAsset
         $replace_values = array_values(\AssetManager::$style_brackets);
 
         return str_replace($replace_keys, $replace_values, $data)."\n";
+    }
+
+    /**
+     * @return string
+     */
+    public function get_extension()
+    {
+        return \AssetManager::$style_file_extension;
     }
 }

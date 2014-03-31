@@ -40,8 +40,6 @@ class ScriptAsset extends AbstractAsset implements IAsset
 
         if (isset($args['jshrink_options']) && is_array($args['jshrink_options']))
             $this->jshrink_options = $args['jshrink_options'];
-
-        $this->extension = \AssetManager::$script_file_extension;
     }
 
     /**
@@ -49,11 +47,11 @@ class ScriptAsset extends AbstractAsset implements IAsset
      *
      * @return string  html Output
      */
-    public function get_output()
+    public function generate_output()
     {
         $output = "<script type='text/javascript' language='javascript'";
         $output .= " src='".str_ireplace(array("http:", "https:"), "", $this->get_file_src());
-        $output .= $this->get_file_version()."'></script>";
+        $output .= '?v='.$this->get_file_version()."'></script>";
 
         return $output;
     }
@@ -125,5 +123,13 @@ class ScriptAsset extends AbstractAsset implements IAsset
         $replace_values = array_values(\AssetManager::$script_brackets);
 
         return str_replace($replace_keys, $replace_values, $data)."\n;";
+    }
+
+    /**
+     * @return string
+     */
+    public function get_extension()
+    {
+        return \AssetManager::$script_file_extension;
     }
 }
