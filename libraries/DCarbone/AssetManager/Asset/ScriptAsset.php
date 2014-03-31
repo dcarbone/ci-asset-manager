@@ -24,17 +24,19 @@ use JShrink\Minifier;
  * Class ScriptAsset
  * @package DCarbone\AssetManager\Asset
  */
-class ScriptAsset extends AbstractAsset
+class ScriptAsset extends AbstractAsset implements IAsset
 {
     /** @var array */
     protected $jshrink_options = array();
 
     /**
      * Constructor
+     *
+     * @param array $asset_params
      */
-    public function __construct(array $config, array $args)
+    public function __construct(array $asset_params)
     {
-        parent::__construct($config, $args);
+        parent::__construct($asset_params);
 
         if (isset($args['jshrink_options']) && is_array($args['jshrink_options']))
             $this->jshrink_options = $args['jshrink_options'];
@@ -60,10 +62,9 @@ class ScriptAsset extends AbstractAsset
      * Determine if script file exists
      *
      * @param string  $file file path / Address
-     * @param string  $type type of file
      * @return Bool
      */
-    protected function file_exists($file, $type = "")
+    public function asset_file_exists($file)
     {
         if (preg_match("#^(http://|https://|//)#i", $file))
             return $this->file_is_remote = true;
@@ -85,21 +86,8 @@ class ScriptAsset extends AbstractAsset
      */
     public function get_asset_path()
     {
-        return $this->config['script_path'];
-    }
-
-    /**
-     * Get full file path for asset
-     *
-     * @param string  $file file name
-     * @return string  asset path
-     */
-    protected function get_file_path($file)
-    {
-        if (preg_match("#^(http://|https://|//)#i", $file))
-            return $file;
-
-        return $filepath = $this->get_asset_path().$file;
+        $config = \AssetManager::get_config();
+        return $config['script_path'];
     }
 
     /**
@@ -109,21 +97,8 @@ class ScriptAsset extends AbstractAsset
      */
     public function get_asset_url()
     {
-        return $this->config['script_url'];
-    }
-
-    /**
-     * Get Full URL to file
-     *
-     * @param string  $file file name
-     * @return string  asset url
-     */
-    protected function get_file_url($file)
-    {
-        if (preg_match("#^(http://|https://|//)#i", $file))
-            return $file;
-
-        return $filepath = $this->get_asset_url().$file;
+        $config = \AssetManager::get_config();
+        return $config['script_url'];
     }
 
     /**
@@ -132,7 +107,7 @@ class ScriptAsset extends AbstractAsset
      * @param string  $data file contents
      * @return string  minified file contents
      */
-    protected function minify($data)
+    public function minify($data)
     {
         return Minifier::minify($data, $this->jshrink_options);
     }
@@ -143,7 +118,7 @@ class ScriptAsset extends AbstractAsset
      * @param string  $data file contents
      * @return string  parsed file contents
      */
-    protected function parse_asset_file($data)
+    public function parse_asset_file($data)
     {
         $replace_keys = array_keys(\AssetManager::$script_brackets);
 
