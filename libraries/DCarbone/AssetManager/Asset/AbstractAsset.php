@@ -350,11 +350,11 @@ abstract class AbstractAsset implements IAsset
         $config = \AssetManager::get_config();
         
         if ($minified === false && $this->cache_file_exists($minified))
-            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension();
+            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
 
 
         if ($minified === true && $this->cache_file_exists($minified))
-            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension();
+            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
 
         return false;
     }
@@ -370,10 +370,10 @@ abstract class AbstractAsset implements IAsset
         $config = \AssetManager::get_config();
         
         if ($minified === false && $this->cache_file_exists($minified))
-            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension();
+            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
 
         if ($minified === true && $this->cache_file_exists($minified))
-            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension();
+            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
 
         return false;
     }
@@ -388,8 +388,8 @@ abstract class AbstractAsset implements IAsset
     {
         $config = \AssetManager::get_config();
         
-        $parsed = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension();
-        $parsed_minified = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension();
+        $parsed = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
+        $parsed_minified = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
 
         if ($minified === false)
         {
@@ -501,26 +501,26 @@ abstract class AbstractAsset implements IAsset
             // If we successfully got the file's contents
             $minified = $this->minify($contents);
 
-            $min_fopen = fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension(), 'w');
+            $min_fopen = fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension(), 'w');
 
             if ($min_fopen === false)
                 return false;
 
             fwrite($min_fopen, $minified."\n");
             fclose($min_fopen);
-            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_extension(), 0644);
+            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension(), 0644);
         }
 
         if ($_create_parsed_cache === true)
         {
-            $parsed_fopen = @fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension(), 'w');
+            $parsed_fopen = @fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension(), 'w');
 
             if ($parsed_fopen === false)
                 return false;
 
             fwrite($parsed_fopen, $contents."\n");
             fclose($parsed_fopen);
-            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_extension(), 0644);
+            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension(), 0644);
         }
         return true;
     }

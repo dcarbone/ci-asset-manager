@@ -132,7 +132,7 @@ interface IAsset
     /**
      * @return string
      */
-    public function get_extension();
+    public function get_file_extension();
 
     /**
      * @param string $data

@@ -15,12 +15,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
      */
     public function generate_output()
     {
-        $this->build_output_sequence();
-
-        $config = \AssetManager::get_config();
-
-        if ($config['dev'] === false && $config['combine'] === true)
-            $this->build_combined_assets();
+       $this->prepare_output();
 
         ob_start();
         foreach($this->output_assets as $asset_name)
@@ -49,7 +44,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
         $combined_asset_name = md5(\AssetManager::$file_prepend_value.implode('', $asset_names));
         $cache_file = $this->cache_file_exists($combined_asset_name);
 
-        if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_date_modified()))
+        if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_file_date_modified()))
         {
             $combine_files = array();
             foreach($this->output_assets as $asset_name)

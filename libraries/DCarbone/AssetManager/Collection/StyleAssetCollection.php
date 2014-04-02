@@ -36,12 +36,7 @@ class StyleAssetCollection extends AbstractAssetCollection
      */
     public function generate_output()
     {
-        $this->build_output_sequence();
-
-        $config = \AssetManager::get_config();
-
-        if ($config['dev'] === false && $config['combine'] === true)
-            $this->build_combined_assets();
+        $this->prepare_output();
 
         ob_start();
         foreach(\AssetManager::$style_media_output_order as $media_type)
@@ -88,7 +83,7 @@ class StyleAssetCollection extends AbstractAssetCollection
             $combined_file_name = $combined_asset_name.'.'.\AssetManager::$style_file_extension;
             $cache_file = $this->load_existing_cached_asset($combined_file_name, $media);
 
-            if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_date_modified()))
+            if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_file_date_modified()))
             {
                 $combine_files = array();
                 foreach($asset_names as $asset_name)
@@ -98,10 +93,11 @@ class StyleAssetCollection extends AbstractAssetCollection
 
                 /** @var CombinedStyleAsset $combined_asset */
                 $combined_asset = CombinedStyleAsset::init_new($combine_files, $combined_asset_name);
-                $combined_asset->set_media($media);
 
                 if ($combined_asset === false)
                     continue;
+
+                $combined_asset->set_media($media);
 
                 $this->set($combined_asset_name, $combined_asset);
             }

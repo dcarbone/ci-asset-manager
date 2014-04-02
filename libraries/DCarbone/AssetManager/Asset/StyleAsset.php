@@ -93,7 +93,7 @@ class StyleAsset extends AbstractAsset implements IAsset
     /**
      * @return string
      */
-    public function get_extension()
+    public function get_file_extension()
     {
         return \AssetManager::$style_file_extension;
     }

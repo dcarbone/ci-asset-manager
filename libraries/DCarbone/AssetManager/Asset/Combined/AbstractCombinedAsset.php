@@ -15,7 +15,7 @@ abstract class AbstractCombinedAsset
     protected $file_path;
 
     /** @var \DateTime */
-    protected $date_modified;
+    protected $file_date_modified;
 
     /** @var string */
     protected $name;
@@ -87,7 +87,7 @@ abstract class AbstractCombinedAsset
         $instance->file_name = $combined_name.'.'.static::get_file_extension();
         $instance->file_path = $combined_file;
         $instance->name = $combined_name;
-        $instance->date_modified = \DateTime::createFromFormat('U', filemtime($combined_file), \AssetManager::$DateTimeZone);
+        $instance->file_date_modified = \DateTime::createFromFormat('U', time(), \AssetManager::$DateTimeZone);
 
         return $instance;
     }
@@ -115,7 +115,7 @@ abstract class AbstractCombinedAsset
             return false;
         }
 
-        $instance->date_modified = \DateTime::createFromFormat('U', filemtime($file), \AssetManager::$DateTimeZone);
+        $instance->file_date_modified = \DateTime::createFromFormat('U', filemtime($file), \AssetManager::$DateTimeZone);
         $instance->name = basename($file, '.'.static::get_file_extension());
         $instance->file_name = $instance->name.'.'.static::get_file_extension();
         $instance->file_path = $file;
@@ -162,9 +162,9 @@ abstract class AbstractCombinedAsset
     /**
      * @return \DateTime
      */
-    public function get_date_modified()
+    public function get_file_date_modified()
     {
-        return $this->date_modified;
+        return $this->file_date_modified;
     }
 
     /**
@@ -188,6 +188,6 @@ abstract class AbstractCombinedAsset
      */
     public function get_file_version()
     {
-        return $this->date_modified->format('Ymd');
+        return $this->file_date_modified->format('Ymd');
     }
 }

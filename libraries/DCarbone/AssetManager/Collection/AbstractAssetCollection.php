@@ -73,6 +73,19 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
     /**
      * @return void
      */
+    public function prepare_output()
+    {
+        $this->build_output_sequence();
+
+        $config = \AssetManager::get_config();
+
+        if ($config['dev'] === false && $config['combine'] === true)
+            $this->build_combined_assets();
+    }
+
+    /**
+     * @return void
+     */
     public function build_output_sequence()
     {
         $required = array();

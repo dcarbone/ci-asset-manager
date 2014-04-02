@@ -26,20 +26,21 @@ require_once ASSET_MANAGER_ASSET_CLASSPATH.'IAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'AbstractAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'ScriptAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'StyleAsset.php';
-require_once ASSET_MANAGER_ASSET_CLASSPATH.'LessAsset.php';
+require_once ASSET_MANAGER_ASSET_CLASSPATH.'LessStyleAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'AbstractCombinedAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedScriptAsset.php';
 require_once ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedStyleAsset.php';
+require_once ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedLessStyleAsset.php';
 require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'AbstractAssetCollection.php';
 require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'StyleAssetCollection.php';
 require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'ScriptAssetCollection.php';
-require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'LessAssetCollection.php';
+require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'LessStyleAssetCollection.php';
 
 use DCarbone\AssetManager\Asset\AbstractAsset;
-use DCarbone\AssetManager\Asset\LessAsset;
+use DCarbone\AssetManager\Asset\LessStyleAsset;
 use DCarbone\AssetManager\Asset\ScriptAsset;
 use DCarbone\AssetManager\Asset\StyleAsset;
-use DCarbone\AssetManager\Collection\LessAssetCollection;
+use DCarbone\AssetManager\Collection\LessStyleAssetCollection;
 use DCarbone\AssetManager\Collection\ScriptAssetCollection;
 use DCarbone\AssetManager\Collection\StyleAssetCollection;
 
@@ -74,7 +75,7 @@ class AssetManager
     /** @var string */
     public static $style_file_extension = 'css';
     /** @var string */
-    public static $less_file_extension = 'less';
+    public static $less_file_extension = 'less_styles';
 
     /** @var array */
     public static $script_brackets = array();
@@ -110,9 +111,11 @@ class AssetManager
     /** @var string */
     protected $style_url  = '';
     /** @var string */
-    protected $less_dir = '';
+    protected $less_style_dir = '';
     /** @var string */
-    protected $less_path = '';
+    protected $less_style_path = '';
+    /** @var string */
+//    protected $less_style_url = '';
     /** @var string */
     protected $cache_dir  = '';
     /** @var string */
@@ -146,8 +149,8 @@ class AssetManager
     protected $StyleAssetCollection;
     /** @var ScriptAssetCollection */
     protected $ScriptAssetCollection;
-    /** @var LessAssetCollection */
-    protected $LessAssetCollection;
+    /** @var LessStyleAssetCollection */
+    protected $LessStyleAssetCollection;
 
     /** @var array */
     protected static $portable_config = null;
@@ -176,7 +179,7 @@ class AssetManager
             // Initialize our AssetCollections
             $this->StyleAssetCollection = new StyleAssetCollection();
             $this->ScriptAssetCollection = new ScriptAssetCollection();
-            $this->LessAssetCollection = new LessAssetCollection();
+            $this->LessStyleAssetCollection = new LessStyleAssetCollection();
 
             // Parse configuration
             $this->_parse_config($config_file);
@@ -212,7 +215,7 @@ class AssetManager
             'asset_dir'         => '',
             'script_dir'        => 'scripts',
             'style_dir'         => 'styles',
-            'less_dir'          => 'less',
+            'less_style_dir'    => 'less_styles',
             'cache_dir'         => 'cache',
 
             'dev'               => false,
@@ -252,11 +255,12 @@ class AssetManager
         // Define the style url and path
         $this->set_style_url($this->asset_url . str_replace('\\', '/', $this->style_dir) . '/');
         $this->set_style_path($this->asset_path . $this->style_dir . DIRECTORY_SEPARATOR);
-        $this->set_less_path($this->asset_path . $this->less_dir . DIRECTORY_SEPARATOR);
+        $this->set_less_style_path($this->asset_path . $this->less_style_dir . DIRECTORY_SEPARATOR);
 
         // Define the cache url and path
         $this->set_cache_url($this->asset_url . str_replace('\\', '/', $this->cache_dir) . '/');
         $this->set_cache_path($this->asset_path . $this->cache_dir . DIRECTORY_SEPARATOR);
+        $this->set_less_style_url($this->cache_url);
 
         // Get a DateTimeZone instance
         static::$DateTimeZone = new \DateTimeZone('UTC');
@@ -268,7 +272,7 @@ class AssetManager
             {
                 $scripts    = (isset($assets['scripts']) ? $assets['scripts'] : array());
                 $styles     = (isset($assets['styles'])  ? $assets['styles']  : array());
-                $less       = (isset($assets['less'])    ? $assets['less']    : array());
+                $less       = (isset($assets['less_styles'])    ? $assets['less_styles']    : array());
                 $groups     = (isset($assets['groups'])  ? $assets['groups']  : array());
                 $this->add_asset_group($group_name, $scripts, $styles, $less, $groups);
             }
@@ -282,9 +286,9 @@ class AssetManager
             foreach($config['styles'] as $style_name=>$style)
                 $this->add_style_file($style, $style_name);
 
-        if (isset($config['less']) && is_array($config['less']))
-            foreach($config['less'] as $less_name=>$less)
-                $this->add_less_file($less, $less_name);
+        if (isset($config['less_styles']) && is_array($config['less_styles']))
+            foreach($config['less_styles'] as $less_name=>$less)
+                $this->add_less_style_file($less, $less_name);
 
         if (function_exists('log_message'))
             log_message('debug', 'Asset Manager: library configured.');
@@ -314,7 +318,7 @@ class AssetManager
      */
     public function reset_assets($keep_default = true)
     {
-        $this->LessAssetCollection->reset();
+        $this->LessStyleAssetCollection->reset();
         $this->ScriptAssetCollection->reset();
         $this->StyleAssetCollection->reset();
 
@@ -358,8 +362,7 @@ class AssetManager
 
             foreach($groups as $group)
             {
-                if (!array_key_exists($group, $this->groups))
-                    $this->groups[$group] = array('styles' => array(), 'scripts' => array());
+                $this->init_group($group);
 
                 if (!in_array($name, $this->groups[$group]['scripts']))
                     $this->groups[$group]['scripts'][] = $name;
@@ -422,8 +425,7 @@ class AssetManager
 
             foreach($groups as $group)
             {
-                if (!array_key_exists($group, $this->groups))
-                    $this->groups[$group] = array('styles' => array(), 'scripts' => array());
+                $this->init_group($group);
 
                 if (!in_array($name, $this->groups[$group]['styles']))
                     $this->groups[$group]['styles'][] = $name;
@@ -445,16 +447,14 @@ class AssetManager
 
     /**
      * @param array $params
-     * @param string $less_name
+     * @param string $less_style_name
      */
-    public function add_less_file(array $params, $less_name = '')
+    public function add_less_style_file(array $params, $less_style_name = '')
     {
         $defaults = array(
             'file'  => '',
             'media'     => 'all',
-            'minify'    => true,
-            'cache'     => true,
-            'name'      => (is_numeric($less_name) ? '' : $less_name),
+            'name'      => (is_numeric($less_style_name) ? '' : $less_style_name),
             'group'     => array('default'),
             'requires'  => array()
         );
@@ -466,14 +466,12 @@ class AssetManager
                 $params[$k] = $v;
         }
 
-        $params['minify_able'] = ($params['minify'] && $this->minify_styles);
-
         // Do a quick sanity check on $group
         if (is_string($params['group']) && $params['group'] !== '')
             $params['group'] = array($params['group']);
 
         // Create a new Asset
-        $asset = new LessAsset($params);
+        $asset = new LessStyleAsset($params);
 
         if ($asset->valid === true)
         {
@@ -482,25 +480,41 @@ class AssetManager
 
             foreach($groups as $group)
             {
-                if (!array_key_exists($group, $this->groups))
-                    $this->groups[$group] = array('styles' => array(), 'scripts' => array());
+                $this->init_group($group);
 
-                if (!in_array($name, $this->groups[$group]['styles']))
-                    $this->groups[$group]['styles'][] = $name;
+                if (!in_array($name, $this->groups[$group]['less_styles']))
+                    $this->groups[$group]['less_styles'][] = $name;
             }
 
-            if (isset($this->LessAssetCollection[$name]))
+            if (isset($this->LessStyleAssetCollection[$name]))
             {
-                /** @var LessAsset $current_asset */
-                $current_asset = $this->LessAssetCollection[$name];
+                /** @var LessStyleAsset $current_asset */
+                $current_asset = $this->LessStyleAssetCollection[$name];
                 $current_asset->add_groups($groups);
-                $this->LessAssetCollection->set($name, $current_asset);
+                $this->LessStyleAssetCollection->set($name, $current_asset);
             }
             else
             {
-                $this->LessAssetCollection->set($name, $asset);
+                $this->LessStyleAssetCollection->set($name, $asset);
             }
         }
+    }
+
+    /**
+     * @param string $group_name
+     * @return void
+     */
+    protected function init_group($group_name)
+    {
+        if (array_key_exists($group_name, $this->groups))
+            return;
+
+        $this->groups[$group_name] = array(
+            'styles' => array(),
+            'scripts' => array(),
+            'less_styles' => array(),
+            'groups' => array(),
+        );
     }
 
     /**
@@ -521,15 +535,7 @@ class AssetManager
         array $include_groups = array())
     {
         // Determine if this is a new group or Adding to one that already exists;
-        if (!array_key_exists($group_name, $this->groups))
-        {
-            $this->groups[$group_name] = array(
-                'scripts' => array(),
-                'styles' => array(),
-                'less' => array(),
-                'groups' => array()
-            );
-        }
+        $this->init_group($group_name);
 
         // If this group requires another group...
         if (count($include_groups) > 0)
@@ -560,7 +566,7 @@ class AssetManager
         foreach($less as $less_name=>$asset)
         {
             $parsed = $this->parse_asset($asset, $group_name);
-            $this->add_less_file($parsed, $less_name);
+            $this->add_less_style_file($parsed, $less_name);
         }
     }
 
@@ -607,18 +613,18 @@ class AssetManager
     /**
      * Load Scripts for Output
      *
-     * @param array|string $names
+     * @param array|string $script_names
      * @return bool
      */
-    public function load_scripts($names)
+    public function load_scripts($script_names)
     {
-        if ((is_string($names) && $names === '') || (is_array($names) && count($names) < 1))
+        if ((is_string($script_names) && $script_names === '') || (is_array($script_names) && count($script_names) < 1))
             return false;
 
-        if (is_string($names))
-            $names = array($names);
+        if (is_string($script_names))
+            $script_names = array($script_names);
 
-        foreach($names as $name)
+        foreach($script_names as $name)
         {
             $this->ScriptAssetCollection->add_asset_to_output($name);
         }
@@ -632,15 +638,15 @@ class AssetManager
      * @param array|string
      * @return bool
      */
-    public function load_styles($names)
+    public function load_styles($style_names)
     {
-        if ((is_string($names) && $names == '') || (is_array($names) && count($names) < 1))
+        if ((is_string($style_names) && $style_names == '') || (is_array($style_names) && count($style_names) < 1))
             return false;
 
-        if (is_string($names))
-            $names = array($names);
+        if (is_string($style_names))
+            $style_names = array($style_names);
 
-        foreach($names as $name)
+        foreach($style_names as $name)
         {
             $this->StyleAssetCollection->add_asset_to_output($name);
         }
@@ -649,20 +655,20 @@ class AssetManager
     }
 
     /**
-     * @param $names
+     * @param $less_style_names
      * @return bool
      */
-    public function load_less_styles($names)
+    public function load_less_styles($less_style_names)
     {
-        if ((is_string($names) && $names == '') || (is_array($names) && count($names) < 1))
+        if ((is_string($less_style_names) && $less_style_names == '') || (is_array($less_style_names) && count($less_style_names) < 1))
             return false;
 
-        if (is_string($names))
-            $names = array($names);
+        if (is_string($less_style_names))
+            $less_style_names = array($less_style_names);
 
-        foreach($names as $name)
+        foreach($less_style_names as $name)
         {
-            $this->LessAssetCollection->add_asset_to_output($name);
+            $this->LessStyleAssetCollection->add_asset_to_output($name);
         }
 
         return true;
@@ -696,7 +702,7 @@ class AssetManager
 
                 $this->load_styles($this->groups[$group]['styles']);
                 $this->load_scripts($this->groups[$group]['scripts']);
-                $this->load_less_styles($this->groups[$group]['less']);
+                $this->load_less_styles($this->groups[$group]['less_styles']);
                 $this->loaded['groups'][$group] = $this->groups[$group];
             }
         }
@@ -712,8 +718,8 @@ class AssetManager
     public function generate_output()
     {
         // This will hold the final output string.
-//        $output = $this->LessAssetCollection->generate_output();
-        $output = $this->StyleAssetCollection->generate_output();
+        $output = $this->LessStyleAssetCollection->generate_output();
+        $output .= $this->StyleAssetCollection->generate_output();
         $output .= $this->ScriptAssetCollection->generate_output();
 
         $this->styles_output = true;
@@ -760,13 +766,13 @@ class AssetManager
      */
     public function generate_output_for_less_styles(array $less_style_names)
     {
-        $this->LessAssetCollection->reset();
+        $this->LessStyleAssetCollection->reset();
         foreach($less_style_names as $less_style_name)
         {
-            $this->LessAssetCollection->add_asset_to_output($less_style_name);
+            $this->LessStyleAssetCollection->add_asset_to_output($less_style_name);
         }
 
-        return $this->LessAssetCollection->generate_output();
+        return $this->LessStyleAssetCollection->generate_output();
     }
 
     /**
@@ -799,8 +805,8 @@ class AssetManager
      */
     public function generate_output_for_less_style($less_style_name)
     {
-        if (isset($this->LessAssetCollection[$less_style_name]))
-            return $this->LessAssetCollection[$less_style_name]->generate_output();
+        if (isset($this->LessStyleAssetCollection[$less_style_name]))
+            return $this->LessStyleAssetCollection[$less_style_name]->generate_output();
 
         return null;
     }
@@ -952,6 +958,24 @@ class AssetManager
     }
 
     /**
+     * @param string $less_url
+     * @return void
+     */
+    public function set_less_style_url($less_url)
+    {
+        $this->less_style_url = $less_url;
+        $this->update_portable_config(__FUNCTION__, $less_url);
+    }
+
+    /**
+     * @return string
+     */
+    public function get_less_style_url()
+    {
+        return $this->less_style_url;
+    }
+
+    /**
      * @param boolean $combine
      */
     public function set_combine($combine)
@@ -1020,37 +1044,37 @@ class AssetManager
     }
 
     /**
-     * @param string $less_dir
+     * @param string $less_style_dir
      */
-    public function set_less_dir($less_dir)
+    public function set_less_style_dir($less_style_dir)
     {
-        $this->less_dir = $less_dir;
-        $this->update_portable_config(__FUNCTION__, $less_dir);
+        $this->less_style_dir = $less_style_dir;
+        $this->update_portable_config(__FUNCTION__, $less_style_dir);
     }
 
     /**
      * @return string
      */
-    public function get_less_dir()
+    public function get_less_style_dir()
     {
-        return $this->less_dir;
+        return $this->less_style_dir;
     }
 
     /**
-     * @param string $less_path
+     * @param string $less_style_path
      */
-    public function set_less_path($less_path)
+    public function set_less_style_path($less_style_path)
     {
-        $this->less_path = $less_path;
-        $this->update_portable_config(__FUNCTION__, $less_path);
+        $this->less_style_path = $less_style_path;
+        $this->update_portable_config(__FUNCTION__, $less_style_path);
     }
 
     /**
      * @return string
      */
-    public function get_less_path()
+    public function get_less_style_path()
     {
-        return $this->less_path;
+        return $this->less_style_path;
     }
 
     /**
