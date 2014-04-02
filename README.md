@@ -164,14 +164,7 @@ name of your choosing here.
 List the other script files by name that this specific file requires
 
 
-### Style Parameters
-
-- **file**
-- **minify**
-- **cache**
-- **name**
-- **requires**
-These follow the same rules as Scripts
+### Additional Style Parameters
 
 - **media**
 Styles have the additional attribute of "media", this is used not only for non-combined output but
