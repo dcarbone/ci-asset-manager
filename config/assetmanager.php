@@ -114,8 +114,7 @@ $config['assetmanager'] = array(
                 array(
                     'file' => 'setup.js',
                     'name' => 'setup',
-                    'minify' => true,
-                    'jshrink_options' => array()
+                    'minify' => true
                 )
             ),
             'groups' => array('jquery', 'jqueryui')
