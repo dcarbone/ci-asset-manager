@@ -1,5 +1,18 @@
 <?php
 
+// Copyright (c) 2012-2014 Daniel Carbone
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 // Define a few file path constants
 define('ASSET_MANAGER_PATH', realpath(__DIR__.DIRECTORY_SEPARATOR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager').DIRECTORY_SEPARATOR);
 define('ASSET_MANAGER_ASSET_CLASSPATH', ASSET_MANAGER_PATH.'Asset'.DIRECTORY_SEPARATOR);
@@ -36,31 +49,12 @@ require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'StyleAssetCollection.php';
 require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'ScriptAssetCollection.php';
 require_once ASSET_MANAGER_COLLECTION_CLASSPATH.'LessStyleAssetCollection.php';
 
-use DCarbone\AssetManager\Asset\AbstractAsset;
 use DCarbone\AssetManager\Asset\LessStyleAsset;
 use DCarbone\AssetManager\Asset\ScriptAsset;
 use DCarbone\AssetManager\Asset\StyleAsset;
 use DCarbone\AssetManager\Collection\LessStyleAssetCollection;
 use DCarbone\AssetManager\Collection\ScriptAssetCollection;
 use DCarbone\AssetManager\Collection\StyleAssetCollection;
-
-/*
-    Asset Management Library for CodeIgniter
-    Copyright (C) 2012-2014 Daniel Carbone (https://github.com/dcarbone)
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 /**
  * Class AssetManager
@@ -169,7 +163,7 @@ class AssetManager
         if (function_exists('log_message'))
             log_message('info', 'Asset Manager: Library initialized.');
 
-        if ($CFG->load('assetmanager', true, true))
+        if ($CFG->load('assetmanager', false, true))
         {
             if (function_exists('log_message'))
                 log_message('info', 'Asset Manager: config Loaded from config file.');

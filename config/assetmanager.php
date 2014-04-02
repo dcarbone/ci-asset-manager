@@ -1,10 +1,6 @@
-<?php if (!defined('BASEPATH')) exit('No direct script access allowed');
+<?php
 
-/**
-* Asset Packager Config File
-*/
-
-// Copyright (c) 2012-2013 Daniel Carbone
+// Copyright (c) 2012-2014 Daniel Carbone
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -16,208 +12,116 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-/*
-|--------------------------------------------------------------------------
-| Asset Directory
-|--------------------------------------------------------------------------
-|
-| Path to the asset directory.  Relative to the CI front controller.
-| 
-| If you do not have an ~"assets" directory, set this value to "", or empty string.
-|
-*/
+$isDev = ((defined('ENVIRONMENT') && constant('ENVIRONMENT') === 'development') ? true : false);
 
-$config['asset_dir'] = "assets";
+$config['assetmanager'] = array(
 
-/*
-|--------------------------------------------------------------------------
-| Script Directory
-|--------------------------------------------------------------------------
-|
-| Path to the script directory.  Relative to the asset_dir.
-|
-*/
+    // Path to the asset directory, relative to the CI Front Controller (FCPATH)
+    'asset_dir' => 'assets',
 
-$config['script_dir'] = 'js';
+    // Paths to each asset type directory, will be appended to asset_dir value
+    'script_dir' => 'js',
+    'style_dir' => 'css',
+    'less_style_dir' => 'less',
+    'cache_dir' => 'cache',
 
+    // Base url of site, defaults to CI_Config base_url value
+//    'base_url' => 'http://www.example.com',
 
-/*
-|--------------------------------------------------------------------------
-| Style Directory
-|--------------------------------------------------------------------------
-|
-| Path to the style directory.  Relative to the asset_dir.
-|
-*/
+    // Is this a development env?
+    'dev' => $isDev,
 
-$config['style_dir'] = 'css';
+    // Global combine flag.  If this is false, ignores individual combine values
+    'combine' => !$isDev,
 
-/*
-|--------------------------------------------------------------------------
-| Cache Directory
-|--------------------------------------------------------------------------
-|
-| Path to the cache directory. Must be writable. Relative to the asset_dir.
-|
-*/
-
-$config['cache_dir'] = 'cache';
-
-/*
-|--------------------------------------------------------------------------
-| Base URL
-|--------------------------------------------------------------------------
-|
-|  Base url of the site, like http://www.example.com/ Defaults to the CI 
-|  config value for base_url.
-|
-*/
-
-//$config['base_url'] = 'http://www.example.com/';
+    'minify_scripts' => !$isDev,
+    'minify_styles' => !$isDev,
 
 
-/*
-|--------------------------------------------------------------------------
-| Development Flag
-|--------------------------------------------------------------------------
-|
-|  Flags whether your in a development environment or not. Defaults to FALSE.
-|
-*/
+    'force_curl' => false,
 
-$config['dev'] =  FALSE;
-
-
-/*
-|--------------------------------------------------------------------------
-| Combine
-|--------------------------------------------------------------------------
-|
-| Flags whether files should be combined. Defaults to opposite of $dev flag.
-|
-*/
-
-$config['combine'] = !$config['dev'];
-
-
-/*
-|--------------------------------------------------------------------------
-| Minify Javascript
-|--------------------------------------------------------------------------
-|
-| Global flag for whether JS should be minified. Defaults opposite of $dev flag.
-|
-*/
-
-$config['minify_scripts'] = !$config['dev'];
-
-
-/*
-|--------------------------------------------------------------------------
-| Minify CSS
-|--------------------------------------------------------------------------
-|
-| Global flag for whether CSS should be minified. Defaults to opposite of $dev flag.
-|
-*/
-
-$config['minify_styles'] = !$config['dev'];
-
-/*
-|--------------------------------------------------------------------------
-| Force cURL
-|--------------------------------------------------------------------------
-|
-| Global flag for whether to force the use of cURL instead of file_get_contents()
-| Defaults to FALSE.
-|
-*/
-
-$config['force_curl'] = true;
-
-#--------------------------------------------------------------------------
-# jQuery
-#--------------------------------------------------------------------------
-#
-$config['groups']['jquery'] = array(
+    // Define scripts
     'scripts' => array(
-        array(
-            'file' => '//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js',
-            'minify' => false,
+        'jquery2' => array(
+            'file' => 'http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js',
             'cache' => false,
-            'name' => 'jquery'
-        )
-    )
-);
-
-#--------------------------------------------------------------------------
-# jQuery UI
-#--------------------------------------------------------------------------
-#
-$config['groups']['jqueryui'] = array(
-    'scripts' => array(
-        array(
-            'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js',
-            'name' => 'jqueryui',
             'minify' => false,
-            'cache' => false,
-            'requires' => array('jquery')
         )
     ),
-    'styles' => array(
-        array(
-            'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css',
-            'name' => 'jqueryui',
-            'minify' => false,
-            'cache' => false
-        )
-    )
-);
 
-#--------------------------------------------------------------------------
-# Default Group
-#--------------------------------------------------------------------------
-#
-$config['groups']['default'] = array(
-    'styles' => array(
-        array(
-            'file' => 'reset.css',
-            'name' => 'reset'
+    // Define asset groups
+    'groups' => array(
+
+        'jquery' => array(
+            'scripts' => array(
+                'jquery' => array(
+                    'file' => '//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js',
+                    'minify' => false,
+                    'cache' => false
+                )
+            )
         ),
-        array(
-            'file' => 'grid.css',
-            'name' => 'grid'
+
+        'jqueryui' => array(
+            'scripts' => array(
+                array(
+                    'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js',
+                    'name' => 'jqueryui',
+                    'minify' => false,
+                    'cache' => false,
+                    'requires' => array('jquery')
+                )
+            ),
+            'styles' => array(
+                array(
+                    'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css',
+                    'name' => 'jqueryui',
+                    'minify' => false,
+                    'cache' => false
+                )
+            )
         ),
-        array(
-            'file' => 'basic.css',
-            'name' => 'basic'
+
+        // Default group is always loaded
+        'default' => array(
+            'styles' => array(
+                array(
+                    'file' => 'reset.css',
+                    'name' => 'reset'
+                ),
+                array(
+                    'file' => 'grid.css',
+                    'name' => 'grid'
+                ),
+                array(
+                    'file' => 'basic.css',
+                    'name' => 'basic'
+                )
+            ),
+            'scripts' => array(
+                array(
+                    'file' => 'underscore.js',
+                    'cache' => false,
+                    'minify' => false,
+                    'name' => 'underscore'
+                ),
+                array(
+                    'file' => 'backbone.js',
+                    'cache' => false,
+                    'minify' => false,
+                    'name' => 'backbone'
+                ),
+                array(
+                    'file' => 'setup.js',
+                    'name' => 'setup',
+                    'minify' => true,
+                    'jshrink_options' => array()
+                )
+            ),
+            'groups' => array('jquery', 'jqueryui')
         )
     ),
-    'scripts' => array(
-        array(
-            'file' => 'underscore.js',
-            'cache' => false,
-            'minify' => false,
-            'name' => 'underscore'
-        ),
-        array(
-            'file' => 'backbone.js',
-            'cache' => false,
-            'minify' => false,
-            'name' => 'backbone'
-        ),
-        array(
-            'file' => 'setup.js',
-            'name' => 'setup',
-            'minify' => true,
-            'jshrink_options' => array()
-        )
-    ),
-    'groups' => array('jquery', 'jqueryui')
 );
-#
-# The group "default" will be included on every page.
-#
 
 
 /* End of file assetpackager.php */

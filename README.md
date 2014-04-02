@@ -1,28 +1,7 @@
 AssetManager
 =============
 
-A powerful asset management library
-
-This library has been designed to work within the CodeIgniter framework, however it is possible to use it outside of that with minimal effort.
-
-Copyright
----------
-Asset Management Library for CodeIgniter
-Copyright (C) 2013  Daniel Carbone (https://github.com/dcarbone)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+A powerful asset management library for the <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a> framework.
 
 Basic Setup and Use
 -------------------
@@ -30,7 +9,15 @@ Basic Setup and Use
 Copy contents of /libraries to /{$appdir}/libraries
 Copy contents of /config to /{$appdir}/config
 
-At some point in your code : require APPPATH."libraries/DCarbone/AssetManager/__autoload.php";
+In your controller, call:
+```php
+$this->load->library('assetmanager');
+```
+
+This will create an instance of AssetManager on your controller, accessible through
+```php
+$this->assetmanager->....
+```
 
 Config Parameters
 -----------------
@@ -39,43 +26,122 @@ The root of the Asset Manager config file are the groups you define.
 
 For example:
 
-	$config['groups']['GROUPNAME'] = array(
-		"scripts" => array(
-			array(
-				"file" => "",
-	            "minify" => TRUE,
-	            "cache" => TRUE,
-	            "name" => "",
-	            "requires" => array()
-			),
-			array(
-				// additional script file
-			)
-		),
-		"styles" => array(
-			array(
-				"file"  => "",
-	            "prod_file" => "",
-	            "media"     => "screen",
-	            "minify"    => TRUE,
-	            "cache"     => TRUE,
-	            "name"      => "",
-	            "requires"  => array()
+```php
 
-			),
-			array(
-				// additional style file
-			)
-		),
-		"groups" => array(
-			// other groups that are required by this group
-		)
-	);
+$isDev = ((defined('ENVIRONMENT') && constant('ENVIRONMENT') === 'development') ? true : false);
 
-These are the paramters that can make up any given group array.
+$config['assetmanager'] = array(
+
+    // Path to the asset directory, relative to the CI Front Controller (FCPATH)
+    'asset_dir' => 'assets',
+
+    // Paths to each asset type directory, will be appended to asset_dir value
+    'script_dir' => 'js',
+    'style_dir' => 'css',
+    'less_style_dir' => 'less',
+    'cache_dir' => 'cache',
+
+    // Base url of site, defaults to CI_Config base_url value
+    // 'base_url' => 'http://www.example.com',
+
+    // Is this a development env?
+    'dev' => $isDev,
+
+    // Global combine flag.  If this is false, ignores individual combine values
+    'combine' => !$isDev,
+
+    'minify_scripts' => !$isDev,
+    'minify_styles' => !$isDev,
 
 
-### Script Parameter Breakdown
+    'force_curl' => false,
+
+    // Define scripts
+    'scripts' => array(
+        'jquery2' => array(
+            'file' => 'http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js',
+            'cache' => false,
+            'minify' => false,
+        )
+    ),
+
+    // Define asset groups
+    'groups' => array(
+
+        'jquery' => array(
+            'scripts' => array(
+                'jquery' => array(
+                    'file' => '//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js',
+                    'minify' => false,
+                    'cache' => false
+                )
+            )
+        ),
+
+        'jqueryui' => array(
+            'scripts' => array(
+                array(
+                    'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js',
+                    'name' => 'jqueryui',
+                    'minify' => false,
+                    'cache' => false,
+                    'requires' => array('jquery')
+                )
+            ),
+            'styles' => array(
+                array(
+                    'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css',
+                    'name' => 'jqueryui',
+                    'minify' => false,
+                    'cache' => false
+                )
+            )
+        ),
+
+        // Default group is always loaded
+        'default' => array(
+            'scripts' => array(
+                array(
+                    'file' => 'path_to_file | url_to_file',
+                    'minify' => TRUE,
+                    'cache' => TRUE,
+                    'name' => 'my_awesome_name',
+                    'requires' => array()
+                ),
+                array(
+                    // additional script file
+                )
+            ),
+            'styles' => array(
+                array(
+                    'file'  => '',
+                    'media'     => 'screen',
+                    'minify'    => TRUE,
+                    'cache'     => TRUE,
+                    'name'      => '',
+                    'requires'  => array()
+    
+                ),
+                array(
+                    // additional style file
+                )
+            ),
+            'less_styles' => array(
+                array(
+                    'file' => '',
+                    'media' => '',
+                    'name' => '',
+                    'requires' => array()
+                ),
+            ),
+            'groups' => array(
+                // other groups that are required by this group
+            )
+    ),
+);
+```
+
+### Script Parameters
 
 **file**
 This field is required.  Use the full filename of the file relative to the assets/scripts
@@ -98,7 +164,7 @@ name of your choosing here.
 List the other script files by name that this specific file requires
 
 
-### Style Parameter Breakdown
+### Style Parameters
 
 **file**
 **minify**
@@ -110,6 +176,15 @@ These follow the same rules as Scripts
 **media**
 Styles have the additional attribute of "media", this is used not only for non-combined output but
 when the global config "combine" is set to true, styles are grouped by "media" types for output.
+
+### Less Style Parameters
+
+**file**
+**media**
+**name**
+**requires**
+
+The parameters present here the same as those for Styles, except that *cache* and *minify* are omitted as they are both on by default currently.
 
 ### Groups
 
@@ -145,3 +220,8 @@ with the src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" (http 
 If this was not a development environment and $config['combine'] === TRUE, then for the combined cache file a
 CURL request will be made to retrieve the contents of the remote file for inclusion in the combined file output.
 
+### Still TODO
+
+- Improve documentation, pretty not-so-great currently
+- Create PHPUnit testing
+- SASS Support(?)
