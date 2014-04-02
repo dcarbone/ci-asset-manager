@@ -143,46 +143,46 @@ $config['assetmanager'] = array(
 
 ### Script Parameters
 
-**file**
+- **file**
 This field is required.  Use the full filename of the file relative to the assets/scripts
 directory defined further up in the config file.
 **If the file is remote, put the full URL here**
 
-**minify**
+- **minify**
 This field is optional, it defaults to true.  Minify only affects non-dev environments and the file will only be minified if both
 this paramter and the global "minify_scripts" parameter is set to true
 
-**cache**
+- **cache**
 This field is optional, it defaults to true
 Caching does multiple things and will be explained further below
 
-**name**
+- **name**
 This field defaults to whatever you put in file, however you can specify a
 name of your choosing here.
 
-**requires**
+- **requires**
 List the other script files by name that this specific file requires
 
 
 ### Style Parameters
 
-**file**
-**minify**
-**cache**
-**name**
-**requires**
+- **file**
+- **minify**
+- **cache**
+- **name**
+- **requires**
 These follow the same rules as Scripts
 
-**media**
+- **media**
 Styles have the additional attribute of "media", this is used not only for non-combined output but
 when the global config "combine" is set to true, styles are grouped by "media" types for output.
 
 ### Less Style Parameters
 
-**file**
-**media**
-**name**
-**requires**
+- **file**
+- **media**
+- **name**
+- **requires**
 
 The parameters present here the same as those for Styles, except that *cache* and *minify* are omitted as they are both on by default currently.
 
@@ -198,6 +198,7 @@ The first time you use AssetManager to load assets for output on your site with 
 it creates parsed / cached versions of each asset in the $config['cache'] folder under the root assets folder.
 
 **Example**
+
 If you had:
 
 	$config['groups']['jquery'] = array(
