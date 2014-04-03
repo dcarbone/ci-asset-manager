@@ -545,7 +545,7 @@ abstract class AbstractAsset implements IAsset
         foreach($this->get_brackets() as $key=>$value)
         {
             if (is_scalar($value))
-                str_replace($key, $value, $data);
+                $data = str_replace($key, $value, $data);
             else if (is_callable($value))
                 $data = $value($key, $data, $this);
         }
