@@ -151,4 +151,9 @@ interface IAsset
      * @return mixed
      */
     public function minify($data);
+
+    /**
+     * @return array
+     */
+    public function get_brackets();
 }

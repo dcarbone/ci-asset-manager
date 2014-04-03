@@ -343,7 +343,7 @@ abstract class AbstractAsset implements IAsset
     public function get_cached_file_url($minified = false)
     {
         $config = \AssetManager::get_config();
-        
+
         if ($minified === false && $this->cache_file_exists($minified))
             return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
 
@@ -363,7 +363,7 @@ abstract class AbstractAsset implements IAsset
     public function get_cached_file_path($minified = false)
     {
         $config = \AssetManager::get_config();
-        
+
         if ($minified === false && $this->cache_file_exists($minified))
             return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
 
@@ -382,7 +382,7 @@ abstract class AbstractAsset implements IAsset
     public function cache_file_exists($minified = false)
     {
         $config = \AssetManager::get_config();
-        
+
         $parsed = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
         $parsed_minified = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
 
@@ -532,6 +532,25 @@ abstract class AbstractAsset implements IAsset
             return $this->_get_cached_asset_contents();
 
         return $this->_get_asset_contents();
+    }
+
+    /**
+     * Parse Asset File and replace key markers
+     *
+     * @param string  $data file contents
+     * @return string  parsed file contents
+     */
+    public function parse_asset_file($data)
+    {
+        foreach($this->get_brackets() as $key=>$value)
+        {
+            if (is_scalar($value))
+                str_replace($key, $value, $data);
+            else if (is_callable($value))
+                $data = $value($key, $data, $this);
+        }
+
+        return $data;
     }
 
     /**

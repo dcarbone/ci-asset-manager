@@ -105,18 +105,20 @@ class ScriptAsset extends AbstractAsset implements IAsset
     }
 
     /**
-     * Parse Asset File and replace key markers
-     *
-     * @param string  $data file contents
-     * @return string  parsed file contents
+     * @return array
+     */
+    public function get_brackets()
+    {
+        return \AssetManager::$script_brackets;
+    }
+
+    /**
+     * @param string $data
+     * @return string
      */
     public function parse_asset_file($data)
     {
-        $replace_keys = array_keys(\AssetManager::$script_brackets);
-
-        $replace_values = array_values(\AssetManager::$script_brackets);
-
-        return str_replace($replace_keys, $replace_values, $data)."\n;";
+        return parent::parse_asset_file($data)."\n;";
     }
 
     /**
