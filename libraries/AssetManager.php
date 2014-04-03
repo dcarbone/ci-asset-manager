@@ -316,6 +316,8 @@ class AssetManager
         $this->ScriptAssetCollection->reset();
         $this->StyleAssetCollection->reset();
 
+        $this->loaded = array();
+
         if ($keep_default === true)
             $this->load_groups('default');
     }
