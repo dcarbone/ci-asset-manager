@@ -25,13 +25,13 @@ class ScriptAssetCollection extends AbstractAssetCollection
      */
     public function generate_output()
     {
-       $this->prepare_output();
+        $this->prepare_output();
 
         ob_start();
         foreach($this->output_assets as $asset_name)
         {
             if (isset($this[$asset_name]))
-                echo $this[$asset_name]->generate_output();
+                echo $this[$asset_name]->generate_output()."\n";
         }
         return ob_get_clean();
     }
