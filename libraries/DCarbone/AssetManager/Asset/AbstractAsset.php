@@ -343,7 +343,7 @@ abstract class AbstractAsset implements IAsset
     public function get_cached_file_url($minified = false)
     {
         $config = \AssetManager::get_config();
-
+        
         if ($minified === false && $this->cache_file_exists($minified))
             return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
 
@@ -363,7 +363,7 @@ abstract class AbstractAsset implements IAsset
     public function get_cached_file_path($minified = false)
     {
         $config = \AssetManager::get_config();
-
+        
         if ($minified === false && $this->cache_file_exists($minified))
             return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
 
@@ -382,7 +382,7 @@ abstract class AbstractAsset implements IAsset
     public function cache_file_exists($minified = false)
     {
         $config = \AssetManager::get_config();
-
+        
         $parsed = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
         $parsed_minified = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
 
@@ -390,13 +390,13 @@ abstract class AbstractAsset implements IAsset
         {
             if (!file_exists($parsed))
             {
-                $this->_failure(array('details' => 'Could not find file at \'{$Parsed}\''));
+                $this->_failure(array('details' => 'Could not find file at "'.$parsed.'"'));
                 return false;
             }
 
             if (!is_readable($parsed))
             {
-                $this->_failure(array('details' => 'Could not read asset file at \'{$Parsed}\''));
+                $this->_failure(array('details' => 'Could not read asset file at "'.$parsed.'"'));
                 return false;
             }
         }
@@ -404,13 +404,13 @@ abstract class AbstractAsset implements IAsset
         {
             if (!file_exists($parsed_minified))
             {
-                $this->_failure(array('details' => 'Could not find file at \'{$Parsed_minified}\''));
+                $this->_failure(array('details' => 'Could not find file at "'.$parsed_minified.'"'));
                 return false;
             }
 
             if (!is_readable($parsed_minified))
             {
-                $this->_failure(array('details' => 'Could not read asset file at \'{$Parsed_minified}\''));
+                $this->_failure(array('details' => 'Could not read asset file at "'.$parsed_minified.'"'));
                 return false;
             }
         }
