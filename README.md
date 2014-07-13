@@ -3,6 +3,11 @@ asset_manager
 
 A powerful asset management library for the <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a> framework.
 
+## Under development
+I am currently working on a near-complete rewrite of this library, and as such it is not currently in a working state.  I will be working
+on this in my spare time, but even so I hope to have it finished very soon.
+
+
 ## Libraries this library implements:
 - https://github.com/oyejorge/less.php/tree/v1.7.0.2
 - https://github.com/tedious/JShrink/tree/v1.0.0

@@ -40,4 +40,6 @@ class MY_Controller extends CI_Controller
 
         $this->load->library('asset_manager');
     }
+
+
 }

@@ -80,6 +80,14 @@ $config['asset_manager'] = array(
             )
         ),
     ),
+
+    'default' => array(
+        'styles' => array(
+            array(
+                'file' => 'basic.css',
+            )
+        ),
+    ),
 );
 
 
