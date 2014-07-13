@@ -27,6 +27,11 @@ This will create an instance of asset_manager on your controller, accessible thr
 $this->asset_manager->....
 ```
 
+## Demo app
+I have included a copy of CI 2.2.0 in this repo as a demonstration tool.  To view it, simply navigate to ``` /demo ``` in any
+browser.  Note: Requires you have the ability to run <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a>
+applications on whatever machine you view it on.
+
 Config Parameters
 -----------------
 
