@@ -3,6 +3,14 @@ asset_manager
 
 A powerful asset management library for the <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a> framework.
 
+## Libraries this library implements:
+- https://github.com/oyejorge/less.php/tree/v1.7.0.2
+- https://github.com/tedious/JShrink/tree/v1.0.0
+
+These dependencies are REQUIRED.  Since CI 2 does not support <a href="https://getcomposer.org/" target="_blank">Composer</a> yet,
+I have included these repos in this one.  I DO NOT claim to own the code for either of those libraries.  They are simply included
+here due to a lack of better CI dependency management.
+
 Basic Setup and Use
 -------------------
 
