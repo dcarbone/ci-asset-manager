@@ -1,4 +1,4 @@
-AssetManager
+asset_manager
 =============
 
 A powerful asset management library for the <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a> framework.
@@ -6,17 +6,17 @@ A powerful asset management library for the <a href="http://ellislab.com/codeign
 Basic Setup and Use
 -------------------
 
-Copy contents of /libraries to /{$appdir}/libraries
-Copy contents of /config to /{$appdir}/config
+Copy contents of /libraries to /APPPATH.libraries
+Copy contents of /config to /APPPATH.config
 
 In your controller, call:
 ```php
-$this->load->library('assetmanager');
+$this->load->library('asset_manager');
 ```
 
-This will create an instance of AssetManager on your controller, accessible through
+This will create an instance of asset_manager on your controller, accessible through
 ```php
-$this->assetmanager->....
+$this->asset_manager->....
 ```
 
 Config Parameters
@@ -30,7 +30,7 @@ For example:
 
 $isDev = ((defined('ENVIRONMENT') && constant('ENVIRONMENT') === 'development') ? true : false);
 
-$config['assetmanager'] = array(
+$config['asset_manager'] = array(
 
     // Path to the asset directory, relative to the CI Front Controller (FCPATH)
     'asset_dir' => 'assets',
@@ -185,9 +185,9 @@ An array of other groups which this group requires
 
 Cache System
 ------------
-AssetManager's caching system is rather robust, albeit static for the time being.
+asset_manager's caching system is rather robust, albeit static for the time being.
 
-The first time you use AssetManager to load assets for output on your site with cache set to TRUE,
+The first time you use asset_manager to load assets for output on your site with cache set to TRUE,
 it creates parsed / cached versions of each asset in the $config['cache'] folder under the root assets folder.
 
 **Example**

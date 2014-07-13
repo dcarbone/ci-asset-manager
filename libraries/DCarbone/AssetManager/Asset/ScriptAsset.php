@@ -80,8 +80,7 @@ class ScriptAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_path()
     {
-        $config = \AssetManager::get_config();
-        return $config['script_path'];
+        return $this->config->get_script_path();
     }
 
     /**
@@ -91,8 +90,7 @@ class ScriptAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_url()
     {
-        $config = \AssetManager::get_config();
-        return $config['script_url'];
+        return $this->config->get_script_url();
     }
 
     /**
@@ -111,7 +109,7 @@ class ScriptAsset extends AbstractAsset implements IAsset
      */
     public function get_brackets()
     {
-        return \AssetManager::$script_brackets;
+        return AssetManagerConfig::$script_brackets;
     }
 
     /**
@@ -128,6 +126,6 @@ class ScriptAsset extends AbstractAsset implements IAsset
      */
     public function get_file_extension()
     {
-        return \AssetManager::$script_file_extension;
+        return AssetManagerConfig::$script_file_extension;
     }
 }

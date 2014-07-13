@@ -152,7 +152,7 @@ abstract class AbstractCombinedAsset
     protected function _failure(array $args = array())
     {
         if (function_exists('log_message'))
-            log_message('error', 'AssetManager: "'.$args['details'].'"');
+            log_message('error', 'asset_manager: "'.$args['details'].'"');
 
         $this->config->call_error_callback($args);
 

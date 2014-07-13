@@ -28,7 +28,7 @@ class CombinedLessStyleAsset extends CombinedStyleAsset
         /** @var CombinedLessStyleAsset $instance */
         $instance = new static;
 
-        $config = \AssetManager::get_config();
+        $config = \asset_manager::get_config();
 
         $combined_file = $config['cache_path'].$combined_name.'.'.static::get_file_extension();
 
@@ -44,7 +44,7 @@ class CombinedLessStyleAsset extends CombinedStyleAsset
         $instance->file_name = $combined_name.'.'.static::get_file_extension();
         $instance->file_path = $combined_file;
         $instance->name = $combined_name;
-        $instance->file_date_modified = \DateTime::createFromFormat('U', time(), \AssetManager::$DateTimeZone);
+        $instance->file_date_modified = \DateTime::createFromFormat('U', time(), \asset_manager::$DateTimeZone);
 
         return $instance;
     }
@@ -54,7 +54,7 @@ class CombinedLessStyleAsset extends CombinedStyleAsset
      */
     protected static function get_file_extension()
     {
-        return \AssetManager::$style_file_extension;
+        return \asset_manager::$style_file_extension;
     }
 
     /**
@@ -74,7 +74,7 @@ class CombinedLessStyleAsset extends CombinedStyleAsset
      */
     public function get_file_src()
     {
-        $config = \AssetManager::get_config();
+        $config = \asset_manager::get_config();
         return $config['cache_url'].$this->file_name;
     }
 }

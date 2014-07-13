@@ -14,7 +14,7 @@
 
 $isDev = ((defined('ENVIRONMENT') && constant('ENVIRONMENT') === 'development') ? true : false);
 
-$config['assetmanager'] = array(
+$config['asset_manager'] = array(
 
     // Path to the asset directory, relative to the CI Front Controller (FCPATH)
     'asset_dir' => 'assets',
@@ -37,8 +37,6 @@ $config['assetmanager'] = array(
     'minify_scripts' => !$isDev,
     'minify_styles' => !$isDev,
 
-
-    'force_curl' => false,
 
     // Define scripts
     'scripts' => array(

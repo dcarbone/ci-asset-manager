@@ -23,7 +23,7 @@ class CombinedStyleAsset extends AbstractCombinedAsset
      */
     protected static function get_file_extension()
     {
-        return \AssetManager::$style_file_extension;
+        return \asset_manager::$style_file_extension;
     }
 
     /**
@@ -60,7 +60,7 @@ class CombinedStyleAsset extends AbstractCombinedAsset
      */
     public function get_file_src()
     {
-        $config = \AssetManager::get_config();
+        $config = \asset_manager::get_config();
         return $config['cache_url'].$this->file_name;
     }
 }

@@ -15,7 +15,7 @@
 
 // Define a few file path constants
 define('ASSET_MANAGER_ROOT_DIR', realpath(__DIR__).DIRECTORY_SEPARATOR);
-define('ASSET_MANAGER_CLASSPATH', ASSET_MANAGER_ROOT_DIR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager'.DIRECTORY_SEPARATOR);
+define('ASSET_MANAGER_CLASSPATH', ASSET_MANAGER_ROOT_DIR.'DCarbone'.DIRECTORY_SEPARATOR.'asset_manager'.DIRECTORY_SEPARATOR);
 define('ASSET_MANAGER_ASSET_CLASSPATH', ASSET_MANAGER_CLASSPATH.'Asset'.DIRECTORY_SEPARATOR);
 define('ASSET_MANAGER_COLLECTION_CLASSPATH', ASSET_MANAGER_CLASSPATH.'Collection'.DIRECTORY_SEPARATOR);
 
@@ -61,9 +61,9 @@ use DCarbone\AssetManager\Collection\ScriptAssetCollection;
 use DCarbone\AssetManager\Collection\StyleAssetCollection;
 
 /**
- * Class AssetManager
+ * Class asset_manager
  */
-class AssetManager
+class asset_manager
 {
     /** @var \DCarbone\AssetManager\Config\AssetManagerConfig */
     protected $config;
@@ -97,21 +97,21 @@ class AssetManager
         if (count($config) > 0)
         {
             if (function_exists('log_message'))
-                log_message('debug', 'AssetManager: Config loaded from array param');
+                log_message('debug', __CLASS__.': Config loaded from array param');
 
             $this->config = new \DCarbone\AssetManager\Config\AssetManagerConfig($config);
         }
-        else if ($CFG instanceof \CI_Config && $CFG->load('assetmanager', false, true))
+        else if ($CFG instanceof \CI_Config && $CFG->load('asset_manager', false, true))
         {
             if (function_exists('log_message'))
-                log_message('debug', 'AssetManager: Config Loaded from file.');
+                log_message('debug', __CLASS__.': Config Loaded from file.');
 
-            $config_file = $CFG->item('assetmanager');
+            $config_file = $CFG->item('asset_manager');
             $this->config = new \DCarbone\AssetManager\Config\AssetManagerConfig($config_file);
         }
         else
         {
-            throw new \RuntimeException('AssetManager::__construct - Unable to initialize AssetManager, no "$CFG" global or "$config" array param seen');
+            throw new \RuntimeException('asset_manager::__construct - Unable to initialize asset_manager, no "$CFG" global or "$config" array param seen');
         }
 
         // Initialize our AssetCollections
