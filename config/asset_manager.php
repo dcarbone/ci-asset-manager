@@ -79,47 +79,9 @@ $config['asset_manager'] = array(
                 )
             )
         ),
-
-        // Default group is always loaded
-        'default' => array(
-            'styles' => array(
-                array(
-                    'file' => 'reset.css',
-                    'name' => 'reset'
-                ),
-                array(
-                    'file' => 'grid.css',
-                    'name' => 'grid'
-                ),
-                array(
-                    'file' => 'basic.css',
-                    'name' => 'basic'
-                )
-            ),
-            'scripts' => array(
-                array(
-                    'file' => 'underscore.js',
-                    'cache' => false,
-                    'minify' => false,
-                    'name' => 'underscore'
-                ),
-                array(
-                    'file' => 'backbone.js',
-                    'cache' => false,
-                    'minify' => false,
-                    'name' => 'backbone'
-                ),
-                array(
-                    'file' => 'setup.js',
-                    'name' => 'setup',
-                    'minify' => true
-                )
-            ),
-            'groups' => array('jquery', 'jqueryui')
-        )
     ),
 );
 
 
-/* End of file assetpackager.php */
-/* Location: ./application/config/assetpackager.php */
+/* End of file asset_manager.php */
+/* Location: ./application/config/asset_manager.php */
