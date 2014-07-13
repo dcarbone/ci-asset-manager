@@ -12,6 +12,6 @@ class MY_Loader extends CI_Loader
     {
         parent::__construct();
 
-        $this->_ci_library_paths[] = realpath(FCPATH.'../libraries').'/';
+        $this->_ci_library_paths[] = realpath(FCPATH.'../').'/';
     }
 }

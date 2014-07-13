@@ -30,7 +30,7 @@ class MY_Controller extends CI_Controller
 
     /** @var \asset_manager */
     public $asset_manager;
-    
+
     /**
      * Constructor
      */
@@ -38,6 +38,6 @@ class MY_Controller extends CI_Controller
     {
         parent::__construct();
 
-
+        $this->load->library('asset_manager');
     }
 }
