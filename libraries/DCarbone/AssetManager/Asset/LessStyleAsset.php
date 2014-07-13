@@ -12,6 +12,8 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+use DCarbone\AssetManager\Config\AssetManagerConfig;
+
 /**
  * Class LessStyleAsset
  * @package DCarbone\AssetManager\Asset
@@ -23,8 +25,7 @@ class LessStyleAsset extends StyleAsset implements IAsset
      */
     public function get_asset_path()
     {
-        $config = \AssetManager::get_config();
-        return $config['less_style_path'];
+        return $this->config->get_less_style_path();
     }
 
     /**
@@ -32,8 +33,7 @@ class LessStyleAsset extends StyleAsset implements IAsset
      */
     public function get_asset_url()
     {
-        $config = \AssetManager::get_config();
-        return $config['less_style_url'];
+        return $this->config->get_less_style_path();
     }
 
     /**
@@ -70,6 +70,6 @@ class LessStyleAsset extends StyleAsset implements IAsset
      */
     public function get_file_extension()
     {
-        return \AssetManager::$less_file_extension;
+        return AssetManagerConfig::$less_file_extension;
     }
 }

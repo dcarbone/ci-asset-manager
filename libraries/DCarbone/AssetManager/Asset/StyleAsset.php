@@ -12,6 +12,8 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+use DCarbone\AssetManager\Config\AssetManagerConfig;
+
 /**
  * Class StyleAsset
  * @package DCarbone\AssetManager\Asset
@@ -43,7 +45,6 @@ class StyleAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_path()
     {
-        $config = \AssetManager::get_config();
         return $config['style_path'];
     }
 
@@ -54,7 +55,6 @@ class StyleAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_url()
     {
-        $config = \AssetManager::get_config();
         return $config['style_url'];
     }
 
@@ -74,7 +74,7 @@ class StyleAsset extends AbstractAsset implements IAsset
      */
     public function get_brackets()
     {
-        return \AssetManager::$style_brackets;
+        return AssetManagerConfig::$style_brackets;
     }
 
     /**
@@ -91,6 +91,6 @@ class StyleAsset extends AbstractAsset implements IAsset
      */
     public function get_file_extension()
     {
-        return \AssetManager::$style_file_extension;
+        return AssetManagerConfig::$style_file_extension;
     }
 }

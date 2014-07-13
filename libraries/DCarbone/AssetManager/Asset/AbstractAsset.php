@@ -12,6 +12,8 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+use DCarbone\AssetManager\Config\AssetManagerConfig;
+
 /**
  * Class AbstractAsset
  * @package DCarbone\AssetManager\Asset
@@ -53,30 +55,13 @@ abstract class AbstractAsset implements IAsset
      * Constructor
      *
      * @param array $asset_params
-     * @internal param array $args
+     * @param \DCarbone\AssetManager\Config\AssetManagerConfig $config
      */
-    public function __construct(array $asset_params)
+    public function __construct(array $asset_params, AssetManagerConfig &$config)
     {
-        $this->parse_args($asset_params);
-        $this->valid = $this->validate();
+        $this->config = &$config;
 
-        if ($this->file_path === null || $this->file_path === false)
-            $this->date_modified = false;
-        else if ($this->file_is_remote === false && is_string($this->file_path))
-            $this->date_modified = new \DateTime('@'.(string)filemtime($this->file_path), \AssetManager::$DateTimeZone);
-        else
-            $this->date_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
-    }
-
-    /**
-     * Parse Arguments
-     *
-     * @param array  $args arguments
-     * @return void
-     */
-    protected function parse_args(array $args = array())
-    {
-        foreach($args as $k=>$v)
+        foreach($asset_params as $k=>$v)
         {
             switch($k)
             {
@@ -89,33 +74,34 @@ abstract class AbstractAsset implements IAsset
                 default : $this->$k = $v;
             }
         }
-    }
 
-    /**
-     * Input Validation
-     *
-     * @return bool
-     */
-    protected function validate()
-    {
-        if ($this->file === '')
+        if ($this->file === null || $this->file === '')
         {
             $this->file_path = false;
             $this->file_url = false;
-            $this->_failure(array('details' => 'You have tried to Add an asset to Asset Manager with undefined "$file" values!'));
-            return false;
+            $this->_failure(array('details' => __CLASS__.' - Undefined "$file" value seen!'));
+            $this->valid = false;
         }
-
-        if ($this->asset_file_exists($this->file))
+        else if (!$this->asset_file_exists($this->file))
+        {
+            $this->_failure(array('details' => __CLASS__.' - Asset file "'.$this->file.'" not found!'));
+            $this->valid = false;
+        }
+        else
         {
             $this->file_path = $this->get_file_path();
             $this->file_url = $this->get_file_url($this->file);
-            return true;
-        }
+            $this->valid = true;
 
-        $this->_failure(array('details' => 'You have specified an invalid file. FileName: "'.$this->file.'"'));
-        return false;
+            if ($this->file_path === null || $this->file_path === false)
+                $this->date_modified = false;
+            else if ($this->file_is_remote === false && is_string($this->file_path))
+                $this->date_modified = new \DateTime('@'.(string)filemtime($this->file_path), AssetManagerConfig::$DateTimeZone);
+            else
+                $this->date_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
+        }
     }
+
 
     /**
      * Determines if this asset is locally cacheable
@@ -215,7 +201,7 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_cached_date_modified($path)
     {
-        return new \DateTime('@'.filemtime($path), \AssetManager::$DateTimeZone);
+        return new \DateTime('@'.filemtime($path), AssetManagerConfig::$DateTimeZone);
     }
 
     /**
@@ -285,7 +271,7 @@ abstract class AbstractAsset implements IAsset
     {
         if ($this->can_be_cached())
         {
-            $minify = (!\AssetManager::is_dev() && $this->minify_able);
+            $minify = (!$this->config->is_dev() && $this->minify_able);
             $this->create_cache();
             $url = $this->get_cached_file_url($minify);
 
@@ -342,14 +328,15 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_cached_file_url($minified = false)
     {
-        $config = \AssetManager::get_config();
+        $cache_url = $this->config->get_cache_url();
+        $ext = $this->get_file_extension();
+        $name = $this->get_name();
 
         if ($minified === false && $this->cache_file_exists($minified))
-            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
-
+            return $cache_url.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext;
 
         if ($minified === true && $this->cache_file_exists($minified))
-            return $config['cache_url'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
+            return $cache_url.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext;
 
         return false;
     }
@@ -362,13 +349,15 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_cached_file_path($minified = false)
     {
-        $config = \AssetManager::get_config();
+        $cache_path = $this->config->get_cache_path();
+        $ext = $this->get_file_extension();
+        $name = $this->get_name();
 
         if ($minified === false && $this->cache_file_exists($minified))
-            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
+            return $cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext;
 
         if ($minified === true && $this->cache_file_exists($minified))
-            return $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
+            return $cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext;
 
         return false;
     }
@@ -381,22 +370,24 @@ abstract class AbstractAsset implements IAsset
      */
     public function cache_file_exists($minified = false)
     {
-        $config = \AssetManager::get_config();
+        $cache_path = $this->config->get_cache_path();
+        $name = $this->get_name();
+        $ext = $this->get_file_extension();
 
-        $parsed = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension();
-        $parsed_minified = $config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension();
+        $parsed = $cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext;
+        $parsed_minified = $cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext;
 
         if ($minified === false)
         {
             if (!file_exists($parsed))
             {
-                $this->_failure(array('details' => 'Could not find file at \'{$Parsed}\''));
+                $this->_failure(array('details' => 'Could not find file at "'.$parsed.'"'));
                 return false;
             }
 
             if (!is_readable($parsed))
             {
-                $this->_failure(array('details' => 'Could not read asset file at \'{$Parsed}\''));
+                $this->_failure(array('details' => 'Could not read asset file at "'.$parsed.'"'));
                 return false;
             }
         }
@@ -404,13 +395,13 @@ abstract class AbstractAsset implements IAsset
         {
             if (!file_exists($parsed_minified))
             {
-                $this->_failure(array('details' => 'Could not find file at \'{$Parsed_minified}\''));
+                $this->_failure(array('details' => 'Could not find file at "'.$parsed_minified.'"'));
                 return false;
             }
 
             if (!is_readable($parsed_minified))
             {
-                $this->_failure(array('details' => 'Could not read asset file at \'{$Parsed_minified}\''));
+                $this->_failure(array('details' => 'Could not read asset file at "'.$parsed_minified.'"'));
                 return false;
             }
         }
@@ -428,7 +419,9 @@ abstract class AbstractAsset implements IAsset
         if ($this->can_be_cached() === false)
             return false;
 
-        $config = \AssetManager::get_config();
+        $cache_path = $this->config->get_cache_path();
+        $ext = $this->get_file_extension();
+        $name = $this->get_name();
 
         $_create_parsed_cache = false;
         $_create_parsed_min_cache = false;
@@ -467,7 +460,7 @@ abstract class AbstractAsset implements IAsset
         $ref = $this->file_path;
         $remote = $this->file_is_remote;
 
-        if($remote || $config['force_curl'])
+        if($remote)
         {
             $ch = curl_init($ref);
             curl_setopt_array($ch, array(
@@ -496,26 +489,26 @@ abstract class AbstractAsset implements IAsset
             // If we successfully got the file's contents
             $minified = $this->minify($contents);
 
-            $min_fopen = fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension(), 'w');
+            $min_fopen = fopen($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext, 'w');
 
             if ($min_fopen === false)
                 return false;
 
             fwrite($min_fopen, $minified."\n");
             fclose($min_fopen);
-            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.min.'.$this->get_file_extension(), 0644);
+            chmod($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext, 0644);
         }
 
         if ($_create_parsed_cache === true)
         {
-            $parsed_fopen = @fopen($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension(), 'w');
+            $parsed_fopen = @fopen($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext, 'w');
 
             if ($parsed_fopen === false)
                 return false;
 
             fwrite($parsed_fopen, $contents."\n");
             fclose($parsed_fopen);
-            chmod($config['cache_path'].\AssetManager::$file_prepend_value.$this->get_name().'.parsed.'.$this->get_file_extension(), 0644);
+            chmod($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext, 0644);
         }
         return true;
     }
@@ -567,7 +560,7 @@ abstract class AbstractAsset implements IAsset
 
         if ($cached === true)
         {
-            $minify = (!\AssetManager::is_dev() && $this->minify_able);
+            $minify = (!$this->config->is_dev() && $this->minify_able);
 
             $path = $this->get_cached_file_path($minify);
 
@@ -593,9 +586,7 @@ abstract class AbstractAsset implements IAsset
     {
         $ref = $this->file_path;
 
-        $config = \AssetManager::get_config();
-
-        if($this->file_is_remote || $config['force_curl'])
+        if($this->file_is_remote)
         {
             if (substr($ref, 0, 2) === '//')
                 $ref = 'http:'.$ref;
@@ -603,7 +594,7 @@ abstract class AbstractAsset implements IAsset
             $ch = curl_init($ref);
             curl_setopt_array($ch, array(
                 CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_CONNECTTIMEOUT => 5
+                CURLOPT_CONNECTTIMEOUT => 5,
             ));
             $contents = curl_exec($ch);
 //            $info = curl_getinfo($ch);
@@ -638,9 +629,7 @@ abstract class AbstractAsset implements IAsset
         if (function_exists('log_message'))
             log_message('error', 'Asset Manager: "'.$args['details'].'"');
 
-        $config = \AssetManager::get_config();
-        if (isset($config['error_callback']) && is_callable($config['error_callback']))
-            return $config['error_callback']($args);
+        $this->config->call_error_callback($args);
 
         return false;
     }

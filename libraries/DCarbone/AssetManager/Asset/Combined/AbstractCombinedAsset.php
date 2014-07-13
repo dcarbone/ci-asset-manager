@@ -13,6 +13,7 @@
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use DCarbone\AssetManager\Asset\AbstractAsset;
+use DCarbone\AssetManager\Config\AssetManagerConfig;
 
 /**
  * Class AbstractCombinedAsset
@@ -34,6 +35,9 @@ abstract class AbstractCombinedAsset
 
     /** @var string */
     protected $media;
+
+    /** @var \DCarbone\AssetManager\Config\AssetManagerConfig */
+    protected $config;
 
     /**
      * Constructor
@@ -63,14 +67,15 @@ abstract class AbstractCombinedAsset
      *
      * @param array $assets
      * @param string $combined_name
+     * @param \DCarbone\AssetManager\Config\AssetManagerConfig $config
      * @return \DCarbone\AssetManager\Asset\Combined\AbstractCombinedAsset
      */
-    public static function init_new(array $assets, $combined_name)
+    public static function init_new(array $assets, $combined_name, AssetManagerConfig &$config)
     {
         /** @var \DCarbone\AssetManager\Asset\Combined\AbstractCombinedAsset $instance */
         $instance = new static;
 
-        $config = \AssetManager::get_config();
+        $instance->config = &$config;
 
         $contents = array();
 
@@ -99,7 +104,7 @@ abstract class AbstractCombinedAsset
         $instance->file_name = $combined_name.'.'.static::get_file_extension();
         $instance->file_path = $combined_file;
         $instance->name = $combined_name;
-        $instance->file_date_modified = \DateTime::createFromFormat('U', time(), \AssetManager::$DateTimeZone);
+        $instance->file_date_modified = \DateTime::createFromFormat('U', time(), AssetManagerConfig::$DateTimeZone);
 
         return $instance;
     }
@@ -108,26 +113,29 @@ abstract class AbstractCombinedAsset
      * Unlike init_new, this constructor expects the full path to an existing combination file
      *
      * @param string $file
+     * @param \DCarbone\AssetManager\Config\AssetManagerConfig $config
      * @return \DCarbone\AssetManager\Asset\Combined\AbstractCombinedAsset
      */
-    public static function init_existing($file)
+    public static function init_existing($file, AssetManagerConfig &$config)
     {
         /** @var \DCarbone\AssetManager\Asset\Combined\AbstractCombinedAsset $instance */
         $instance = new static;
 
+        $instance->config = &$config;
+
         if (!file_exists($file))
         {
-            static::_failure(array('details' => 'Could not find file at "'.$file.'"'));
+            $instance->_failure(array('details' => 'Could not find file at "'.$file.'"'));
             return false;
         }
 
         if (!is_writable($file))
         {
-            static::_failure(array('details' => 'File at "'.$file.'" is not writable'));
+            $instance->_failure(array('details' => 'File at "'.$file.'" is not writable'));
             return false;
         }
 
-        $instance->file_date_modified = \DateTime::createFromFormat('U', filemtime($file), \AssetManager::$DateTimeZone);
+        $instance->file_date_modified = \DateTime::createFromFormat('U', filemtime($file), AssetManagerConfig::$DateTimeZone);
         $instance->name = basename($file, '.'.static::get_file_extension());
         $instance->file_name = $instance->name.'.'.static::get_file_extension();
         $instance->file_path = $file;
@@ -141,26 +149,14 @@ abstract class AbstractCombinedAsset
      * @param array $args
      * @return bool  False
      */
-    protected static function _failure(array $args = array())
+    protected function _failure(array $args = array())
     {
         if (function_exists('log_message'))
-            log_message('error', 'Asset Manager: "'.$args['details'].'"');
+            log_message('error', 'AssetManager: "'.$args['details'].'"');
 
-        $callback = static::get_error_callback();
-        if (is_callable($callback))
-            return $callback($args);
+        $this->config->call_error_callback($args);
 
         return false;
-    }
-
-    /**
-     * Get Error Callback Function
-     *
-     * @return \Closure
-     */
-    protected static function get_error_callback()
-    {
-        return ((isset($config['error_callback'])) ? $config['error_callback'] : null);
     }
 
     /**

@@ -12,6 +12,7 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+use DCarbone\AssetManager\Config\AssetManagerConfig;
 use JShrink\Minifier;
 
 /**
@@ -27,13 +28,14 @@ class ScriptAsset extends AbstractAsset implements IAsset
      * Constructor
      *
      * @param array $asset_params
+     * @param \DCarbone\AssetManager\Config\AssetManagerConfig $config
      */
-    public function __construct(array $asset_params)
+    public function __construct(array $asset_params, AssetManagerConfig $config)
     {
-        parent::__construct($asset_params);
+        parent::__construct($asset_params, $config);
 
-        if (isset($args['jshrink_options']) && is_array($args['jshrink_options']))
-            $this->jshrink_options = $args['jshrink_options'];
+        if (isset($asset_params['jshrink_options']) && is_array($asset_params['jshrink_options']))
+            $this->jshrink_options = $asset_params['jshrink_options'];
     }
 
     /**

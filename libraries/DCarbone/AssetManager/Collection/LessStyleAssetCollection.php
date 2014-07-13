@@ -13,6 +13,7 @@
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use DCarbone\AssetManager\Asset\Combined\CombinedLessStyleAsset;
+use DCarbone\AssetManager\Config\AssetManagerConfig;
 
 /**
  * Class LessStyleAssetCollection
@@ -29,9 +30,9 @@ class LessStyleAssetCollection extends StyleAssetCollection
     /**
      * Constructor
      */
-    public function __construct()
+    public function __construct(array $data = array(), AssetManagerConfig $config)
     {
-        parent::__construct();
+        parent::__construct($data, $config);
 
         if (!isset(static::$LessParser))
             static::$LessParser = new \Less_Parser();
@@ -59,8 +60,8 @@ class LessStyleAssetCollection extends StyleAssetCollection
         {
             $newest_file = $this->get_newest_date_modified($asset_names);
 
-            $combined_asset_name = md5(\AssetManager::$file_prepend_value.implode('', $asset_names));
-            $combined_file_name = $combined_asset_name.'.'.\AssetManager::$style_file_extension;
+            $combined_asset_name = md5(AssetManagerConfig::$file_prepend_value.implode('', $asset_names));
+            $combined_file_name = $combined_asset_name.'.'.AssetManagerConfig::$style_file_extension;
             $cache_file = $this->load_existing_cached_asset($combined_file_name, $media);
 
             if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_file_date_modified()))
@@ -99,11 +100,12 @@ class LessStyleAssetCollection extends StyleAssetCollection
      */
     protected function load_existing_cached_asset($file_name, $media)
     {
-        $config = \AssetManager::get_config();
-        if (file_exists($config['cache_path'].$file_name))
+        $path = $this->config->get_cache_path().$file_name;
+
+        if (file_exists($path))
         {
             /** @var CombinedLessStyleAsset $asset */
-            $asset = CombinedLessStyleAsset::init_existing($config['cache_path'].$file_name);
+            $asset = CombinedLessStyleAsset::init_existing($path);
             $asset->set_media($media);
             $this->set($asset->get_name(), $asset);
             return true;

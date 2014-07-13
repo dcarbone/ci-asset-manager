@@ -14,6 +14,7 @@
 
 use DCarbone\AssetManager\Asset\Combined\CombinedStyleAsset;
 use DCarbone\AssetManager\Asset\StyleAsset;
+use DCarbone\AssetManager\Config\AssetManagerConfig;
 
 /**
  * Class StyleAssetCollection
@@ -50,7 +51,7 @@ class StyleAssetCollection extends AbstractAssetCollection
         $this->prepare_output();
 
         ob_start();
-        foreach(\AssetManager::$style_media_output_order as $media_type)
+        foreach(AssetManagerConfig::$style_media_output_order as $media_type)
         {
             if (isset($this->style_medias[$media_type]))
             {
@@ -90,8 +91,8 @@ class StyleAssetCollection extends AbstractAssetCollection
         {
             $newest_file = $this->get_newest_date_modified($asset_names);
 
-            $combined_asset_name = md5(\AssetManager::$file_prepend_value.implode('', $asset_names));
-            $combined_file_name = $combined_asset_name.'.'.\AssetManager::$style_file_extension;
+            $combined_asset_name = md5(AssetManagerConfig::$file_prepend_value.implode('', $asset_names));
+            $combined_file_name = $combined_asset_name.'.'.AssetManagerConfig::$style_file_extension;
             $cache_file = $this->load_existing_cached_asset($combined_file_name, $media);
 
             if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_file_date_modified()))
@@ -135,11 +136,11 @@ class StyleAssetCollection extends AbstractAssetCollection
      */
     protected function load_existing_cached_asset($file_name, $media)
     {
-        $config = \AssetManager::get_config();
-        if (file_exists($config['cache_path'].$file_name))
+        $file_path = $this->config->get_cache_path().$file_name;
+        if (file_exists($file_path))
         {
             /** @var CombinedStyleAsset $asset */
-            $asset = CombinedStyleAsset::init_existing($config['cache_path'].$file_name);
+            $asset = CombinedStyleAsset::init_existing($file_path);
             $asset->set_media($media);
             $this->set($asset->get_name(), $asset);
             return true;

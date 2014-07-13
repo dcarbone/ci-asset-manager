@@ -13,18 +13,22 @@
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use DCarbone\AssetManager\Asset\AbstractAsset;
+use DCarbone\AssetManager\Config\AssetManagerConfig;
 
 /**
  * Class AbstractAssetCollection
  *
- * This class is a derivative of my DCarbone\Helpers\AbstractTraversableClass found here:
- * @link https://github.com/dcarbone/helpers
+ * This class is a derivative of my DCarbone\CollectionPlus\AbstractCollectionPlus found here:
+ * @link https://github.com/dcarbone/collection-plus
  *
  * @property array output_assets
  * @package DCarbone\AssetManager\Collection
  */
 abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator, \SeekableIterator, \ArrayAccess, \Serializable
 {
+    /** @var \DCarbone\AssetManager\Config\AssetManagerConfig */
+    protected $config;
+
     /**
      * @return void
      */
@@ -89,9 +93,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
     {
         $this->build_output_sequence();
 
-        $config = \AssetManager::get_config();
-
-        if ($config['dev'] === false && $config['combine'] === true)
+        if ($this->config->is_dev() === false && $this->config->can_combine() === true)
             $this->build_combined_assets();
     }
 
@@ -172,28 +174,30 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      *
      */
 
-    /**
-     * Used by Iterators
-     * @var mixed
-     */
-    private $_position = null;
-    private $_positionKeys = array();
-    private $_positionKeysPosition = 0;
+    /** @var array */
+    private $_storage = array();
 
-    /**
-     * @var array
-     */
-    private $_dataSet = array();
+    /** @var mixed */
+    private $_firstKey = null;
+    /** @var mixed */
+    private $_lastKey = null;
+
+    /** @var string */
+    protected $iteratorClass = '\ArrayIterator';
 
     /**
      * @param array $data
+     * @param \DCarbone\AssetManager\Config\AssetManagerConfig $config
      */
-    public function __construct(array $data = array())
+    public function __construct(array $data = array(), AssetManagerConfig &$config)
     {
-        $this->_dataSet = $data;
-        $this->updateKeys();
-        $this->set('output_assets', array());
-        $this->load_existing_cached_assets();
+        $this->config = &$config;
+
+        $this->_storage = $data;
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
     }
 
     /**
@@ -225,7 +229,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
         if (!is_callable($func) || substr($func, 0, 6) !== 'array_')
             throw new \BadMethodCallException(__CLASS__.'->'.$func);
 
-        return call_user_func_array($func, array_merge(array($this->_dataSet), $argv));
+        return call_user_func_array($func, array_merge(array($this->_storage), $argv));
     }
 
     /**
@@ -233,7 +237,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function array_keys()
     {
-        return $this->_positionKeys;
+        return array_keys($this->_storage);
     }
 
     /**
@@ -243,7 +247,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function __toString()
     {
-        return __CLASS__;
+        return get_class($this);
     }
 
     /**
@@ -253,7 +257,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function __toArray()
     {
-        return $this->_dataSet;
+        return $this->_storage;
     }
 
     /**
@@ -261,13 +265,13 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      * @return mixed
      * @throws \OutOfRangeException
      */
-    public function __get($param)
+    public function &__get($param)
     {
-        if (!isset($this->_dataSet[$param]))
+        if (!$this->offsetExists($param))
             throw new \OutOfRangeException('No data element with the key "'.$param.'" found');
 
-        return $this->_dataSet[$param];
-   }
+        return $this->_storage[$param];
+    }
 
     /**
      * This method was inspired by Zend Framework 2.2.x PhpReferenceCompatibility class
@@ -281,18 +285,24 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
     public function exchangeArray($dataSet)
     {
         if (!is_array($dataSet) && !is_object($dataSet))
-            throw new \InvalidArgumentException('AbstractTraversableClass::exchangeArray - "$dataSet" parameter expected to be array or object');
+            throw new \InvalidArgumentException(__CLASS__.'::exchangeArray - "$dataSet" parameter expected to be array or object');
 
-        if ($dataSet instanceof \ArrayObject)
-            $dataSet = $dataSet->getArrayCopy();
-        else if ($dataSet instanceof static)
-            $dataSet = $dataSet->__toArray();
-        else if (!is_array($dataSet))
+        if ($dataSet instanceof \stdClass)
             $dataSet = (array)$dataSet;
+        else if ($dataSet instanceof self)
+            $dataSet = $dataSet->__toArray();
+        else if (is_object($dataSet) && is_callable(array($dataSet, 'getArrayCopy')))
+            $dataSet = $dataSet->getArrayCopy();
 
-        $storage = $this->_dataSet;
-        $this->_dataSet = $dataSet;
-        $this->updateKeys();
+        if (!is_array($dataSet))
+            throw new \InvalidArgumentException(__CLASS__.'::exchangeArray - Could not convert "$dataSet" value of type "'.gettype($dataSet).'" to an array!');
+
+        $storage = $this->_storage;
+        $this->_storage = $dataSet;
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $storage;
     }
 
@@ -330,21 +340,31 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function contains($element)
     {
-        return in_array($element, $this->_dataSet, true);
+        return in_array($element, $this->_storage, true);
     }
 
     /**
      * Custom "contains" method
      *
      * @param callable $func
+     * @throws \InvalidArgumentException
      * @return bool
      */
-    public function exists(\Closure $func)
+    public function exists($func)
     {
-        foreach($this->_dataSet as $key=>$element)
+        if (!is_callable($func, false, $callable_name))
+            throw new \InvalidArgumentException(__CLASS__.'::exists - Un-callable "$func" value seen!');
+
+        if (strpos($callable_name, 'Closure::') !== 0)
+            $func = $callable_name;
+
+        reset($this->_storage);
+        while(($key = key($this->_storage)) !== null && ($value = current($this->_storage)) !== false)
         {
-            if ($func($key, $element))
+            if ($func($key, $value))
                 return true;
+
+            next($this->_storage);
         }
 
         return false;
@@ -358,7 +378,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function indexOf($value)
     {
-        return array_search($value, $this->_dataSet, true);
+        return array_search($value, $this->_storage, true);
     }
 
     /**
@@ -369,11 +389,17 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function remove($index)
     {
-        if (!$this->offsetExists($index))
+        if (!isset($this->_storage[$index]) && !array_key_exists($index, $this->_storage))
             return null;
 
-        $removed = $this->offsetGet($index);
-        $this->offsetUnset($index);
+        $removed = $this->_storage[$index];
+        unset($this->_storage[$index]);
+
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
+
         return $removed;
     }
 
@@ -383,12 +409,18 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function removeElement($element)
     {
-        $key = array_search($element, $this->_dataSet, true);
+        $key = array_search($element, $this->_storage, true);
 
         if ($key === false)
             return false;
 
-        $this->offsetUnset($key);
+        unset($this->_storage[$key]);
+
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
+
         return true;
     }
 
@@ -399,7 +431,44 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function getIterator()
     {
-        return new \ArrayIterator($this->_dataSet);
+        $class = $this->iteratorClass;
+        return new $class($this->_storage);
+    }
+
+    /**
+     * @return string
+     */
+    public function getIteratorClass()
+    {
+        return $this->iteratorClass;
+    }
+
+    /**
+     * Sets the iterator classname for the ArrayObject
+     *
+     * @param  string $class
+     * @throws \InvalidArgumentException
+     * @return void
+     */
+    public function setIteratorClass($class)
+    {
+        if (class_exists($class))
+        {
+            $this->iteratorClass = $class;
+            return;
+        }
+
+        if (strpos($class, '\\') === 0)
+        {
+            $class = '\\' . $class;
+            if (class_exists($class))
+            {
+                $this->iteratorClass = $class;
+                return;
+            }
+        }
+
+        throw new \InvalidArgumentException(__CLASS__.'::setIteratorClass - The iterator class does not exist');
     }
 
     /**
@@ -410,28 +479,45 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      * They scope "static" is used so that an instance of the extended class is returned.
      *
      * @param callable $func
+     * @throws \InvalidArgumentException
      * @return static
      */
-    public function map(\Closure $func)
+    public function map($func)
     {
-        return new static(array_map($func, $this->_dataSet));
+        if (!is_callable($func, false, $callable_name))
+            throw new \InvalidArgumentException(__CLASS__.'::map - Un-callable "$func" value seen!');
+
+        if (strpos($callable_name, 'Closure::') !== 0)
+            $func = $callable_name;
+
+        return new static(array_map($func, $this->_storage), $this->config);
     }
 
     /**
-     * Filter internal dataset using closure
+     * Applies array_filter to internal dataset, returns new instance with resulting values.
+     *
+     * @link http://www.php.net/manual/en/function.array-filter.php
+     *
+     * Inspired by:
+     *
+     * @link http://www.doctrine-project.org/api/common/2.3/source-class-Doctrine.Common.Collections.ArrayCollection.html#377-387
      *
      * @param callable $func
-     * @return bool
+     * @throws \InvalidArgumentException
+     * @return static
      */
-    public function filter(\Closure $func)
+    public function filter($func = null)
     {
-        foreach($this->_dataSet as $key=>$element)
-        {
-            if (!$func($key, $element))
-                return false;
-        }
+        if ($func !== null && !is_callable($func, false, $callable_name))
+            throw new \InvalidArgumentException(__CLASS__.'::filter - Un-callable "$func" value seen!');
 
-        return true;
+        if ($func === null)
+            return new static(array_filter($this->_storage), $this->config);
+
+        if (strpos($callable_name, 'Closure::') !== 0)
+            $func = $callable_name;
+
+        return new static(array_filter($this->_storage, $func), $this->config);
     }
 
     /**
@@ -441,11 +527,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function isEmpty()
     {
-        return ($this->count() === 0);
+        return (count($this) === 0);
     }
 
     /**
-     * Return the first item in the dataset
+     * Return the first item from storage
      *
      * @return mixed
      */
@@ -454,11 +540,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
         if ($this->isEmpty())
             return null;
 
-        return reset($this->_dataSet);
+        return $this->_storage[$this->_firstKey];
     }
 
     /**
-     * Return the last element in the dataset
+     * Return the last element from storage
      *
      * @return mixed
      */
@@ -467,7 +553,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
         if ($this->isEmpty())
             return null;
 
-        return end($this->_dataSet);
+        return $this->_storage[$this->_lastKey];
     }
 
     /**
@@ -480,8 +566,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function sort($flags = SORT_REGULAR)
     {
-        $sort = sort($this->_dataSet, $flags);
-        $this->updateKeys();
+        $sort = sort($this->_storage, $flags);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -495,8 +584,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function rsort($flags = SORT_REGULAR)
     {
-        $sort = rsort($this->_dataSet, $flags);
-        $this->updateKeys();
+        $sort = rsort($this->_storage, $flags);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -510,8 +602,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function usort($func)
     {
-        $sort = usort($this->_dataSet, $func);
-        $this->updateKeys();
+        $sort = usort($this->_storage, $func);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -525,8 +620,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function ksort($flags = SORT_REGULAR)
     {
-        $sort = ksort($this->_dataSet, $flags);
-        $this->updateKeys();
+        $sort = ksort($this->_storage, $flags);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -540,8 +638,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function krsort($flags = SORT_REGULAR)
     {
-        $sort = krsort($this->_dataSet, $flags);
-        $this->updateKeys();
+        $sort = krsort($this->_storage, $flags);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -555,8 +656,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function uksort($func)
     {
-        $sort = uksort($this->_dataSet, $func);
-        $this->updateKeys();
+        $sort = uksort($this->_storage, $func);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -570,8 +674,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function asort($flags = SORT_REGULAR)
     {
-        $sort = asort($this->_dataSet, $flags);
-        $this->updateKeys();
+        $sort = asort($this->_storage, $flags);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -585,8 +692,11 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function arsort($flags = SORT_REGULAR)
     {
-        $sort = arsort($this->_dataSet, $flags);
-        $this->updateKeys();
+        $sort = arsort($this->_storage, $flags);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
     }
 
@@ -600,162 +710,139 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function uasort($func)
     {
-        $sort = uasort($this->_dataSet, $func);
-        $this->updateKeys();
+        $sort = uasort($this->_storage, $func);
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
         return $sort;
-    }
-
-    /**
-     * Updates the internal positionKeys value
-     *
-     * @return void
-     */
-    private function updateKeys()
-    {
-        $this->_positionKeys = array_keys($this->_dataSet);
-        $this->_position = reset($this->_positionKeys);
-        $this->_positionKeysPosition = 0;
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Return the current element
      * @link http://php.net/manual/en/iterator.current.php
-     *
      * @return mixed Can return any type.
      */
     public function current()
     {
-        return (!isset($this->_position) || $this->_position === null ? false : $this->_dataSet[$this->_position]);
+        return current($this->_storage);
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Move forward to next element
      * @link http://php.net/manual/en/iterator.next.php
-     *
      * @return void Any returned value is ignored.
      */
     public function next()
     {
-        $this->_positionKeysPosition++;
-        if (isset($this->_positionKeys[$this->_positionKeysPosition]))
-            $this->_position = $this->_positionKeys[$this->_positionKeysPosition];
-        else
-            $this->_position = null;
+        next($this->_storage);
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Return the key of the current element
      * @link http://php.net/manual/en/iterator.key.php
-     *
      * @return mixed scalar on success, or null on failure.
      */
     public function key()
     {
-        return $this->_position;
+        return key($this->_storage);
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Checks if current position is valid
      * @link http://php.net/manual/en/iterator.valid.php
-     *
      * @return boolean The return value will be casted to boolean and then evaluated.
      * Returns true on success or false on failure.
      */
     public function valid()
     {
-        return isset($this->_dataSet[$this->_position]);
+        return (key($this->_storage) !== null && current($this->_storage) !== false);
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Rewind the Iterator to the first element
      * @link http://php.net/manual/en/iterator.rewind.php
-     *
      * @return void Any returned value is ignored.
      */
     public function rewind()
     {
-        $this->_positionKeysPosition = 0;
-        if (isset($this->_positionKeys[$this->_positionKeysPosition]))
-            $this->_position = $this->_positionKeys[$this->_positionKeysPosition];
-        else
-            $this->_position = null;
+        reset($this->_storage);
     }
 
     /**
      * (PHP 5 >= 5.1.0)
      * Returns if an iterator can be created for the current entry.
      * @link http://php.net/manual/en/recursiveiterator.haschildren.php
-     *
      * @return bool true if the current entry can be iterated over, otherwise returns false.
      */
     public function hasChildren()
     {
-        return ($this->valid() && is_array($this->_dataSet[$this->_position]));
+        return ($this->valid() && is_array(current($this->_storage)));
     }
 
     /**
      * (PHP 5 >= 5.1.0)
      * Returns an iterator for the current entry.
      * @link http://php.net/manual/en/recursiveiterator.getchildren.php
-     *
      * @return \RecursiveIterator An iterator for the current entry.
      */
     public function getChildren()
     {
-        return $this->_dataSet[$this->_position];
+        return current($this->_storage);
     }
 
     /**
      * (PHP 5 >= 5.1.0)
      * Seeks to a position
      * @link http://php.net/manual/en/seekableiterator.seek.php
-     *
      * @param int $position The position to seek to.
+     *
      * @throws \OutOfBoundsException
      * @return void
      */
     public function seek($position)
     {
-        if (!isset($this->_positionKeys[$position]))
+        if (!isset($this->_storage[$position]) && !array_key_exists($position, $this->_storage))
             throw new \OutOfBoundsException('Invalid seek position ('.$position.')');
 
-        $this->_positionKeysPosition = $position;
-        $this->_position = $this->_positionKeys[$this->_positionKeysPosition];
+        while (key($this->_storage) !== $position)
+        {
+            next($this->_storage);
+        }
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Whether a offset exists
      * @link http://php.net/manual/en/arrayaccess.offsetexists.php
-     *
-     *
      * @param mixed $offset An offset to check for.
+     *
      * @return boolean true on success or false on failure.
-     * 
+     *
      * The return value will be casted to boolean if non-boolean was returned.
      */
     public function offsetExists($offset)
     {
-        return (array_search($offset, $this->_positionKeys, true) !== false);
+        return isset($this->_storage[$offset]) || array_key_exists($offset, $this->_storage);
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Offset to retrieve
      * @link http://php.net/manual/en/arrayaccess.offsetget.php
-     *
      * @param mixed $offset The offset to retrieve.
+     *
      * @return mixed Can return all value types.
      */
     public function offsetGet($offset)
     {
-        if ($this->offsetExists($offset))
-            return $this->_dataSet[$offset];
+        if (isset($this->_storage[$offset]) || array_key_exists($offset, $this->_storage))
+            return $this->_storage[$offset];
         else
             return null;
     }
@@ -764,39 +851,44 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      * (PHP 5 >= 5.0.0)
      * Offset to set
      * @link http://php.net/manual/en/arrayaccess.offsetset.php
-     *
      * @param mixed $offset The offset to assign the value to.
+     *
      * @param mixed $value The value to set.
-     * @return void
+     * @return mixed
      */
     public function offsetSet($offset, $value)
     {
         if ($offset === null)
-            $this->_dataSet[] = $value;
+            $this->_storage[] = $value;
         else
-            $this->_dataSet[$offset] = $value;
+            $this->_storage[$offset] = $value;
 
-        $this->updateKeys();
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
     }
 
     /**
      * (PHP 5 >= 5.0.0)
      * Offset to unset
      * @link http://php.net/manual/en/arrayaccess.offsetunset.php
-     *
      * @param mixed $offset The offset to unset.
-     * @param mixed $offset
+     *
      * @throws \OutOfBoundsException
      * @return void
      */
     public function offsetUnset($offset)
     {
-        if ($this->offsetExists($offset))
-            unset($this->_dataSet[$offset]);
+        if (isset($this->_storage[$offset]) || array_key_exists($offset, $this->_storage))
+            unset($this->_storage[$offset]);
         else
             throw new \OutOfBoundsException('Tried to unset undefined offset ('.$offset.')');
 
-        $this->updateKeys();
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
     }
 
     /**
@@ -804,12 +896,12 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      * Count elements of an object
      * @link http://php.net/manual/en/countable.count.php
      * @return int The custom count as an integer.
-     * 
+     *
      * The return value is cast to an integer.
      */
     public function count()
     {
-        return count($this->_dataSet);
+        return count($this->_storage);
     }
 
     /**
@@ -820,7 +912,7 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      */
     public function serialize()
     {
-        return serialize($this->_dataSet);
+        return serialize($this->_storage);
     }
 
     /**
@@ -828,13 +920,24 @@ abstract class AbstractAssetCollection implements \Countable, \RecursiveIterator
      * Constructs the object
      * @link http://php.net/manual/en/serializable.unserialize.php
      * @param string $serialized The string representation of the object.
-     * 
+     *
      * @return void
      */
     public function unserialize($serialized)
     {
-        $this->_dataSet = unserialize($serialized);
-        $this->_positionKeys = array_keys($this->_dataSet);
-        $this->_position = reset($this->_positionKeys);
+        $this->_storage = unserialize($serialized);
+
+        end($this->_storage);
+        $this->_lastKey = key($this->_storage);
+        reset($this->_storage);
+        $this->_firstKey = key($this->_storage);
+    }
+
+    /**
+     * @return array|mixed
+     */
+    public function jsonSerialize()
+    {
+        return $this->_storage;
     }
 }

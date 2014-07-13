@@ -13,6 +13,7 @@
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 use DCarbone\AssetManager\Asset\Combined\CombinedScriptAsset;
+use DCarbone\AssetManager\Config\AssetManagerConfig;
 
 /**
  * Class ScriptAssetCollection
@@ -51,7 +52,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
         $newest_file = $this->get_newest_date_modified($this->output_assets);
         $asset_names = array_keys($this->output_assets);
 
-        $combined_asset_name = md5(\AssetManager::$file_prepend_value.implode('', $asset_names));
+        $combined_asset_name = md5(AssetManagerConfig::$file_prepend_value.implode('', $asset_names));
         $cache_file = $this->cache_file_exists($combined_asset_name);
 
         if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_file_date_modified()))
@@ -80,10 +81,10 @@ class ScriptAssetCollection extends AbstractAssetCollection
      */
     protected function load_existing_cached_assets()
     {
-        $config = \AssetManager::get_config();
-        foreach(glob($config['cache_path'].'*.'.\AssetManager::$script_file_extension) as $script_cache_file)
+        $cache_path = $this->config->get_cache_path();
+        foreach(glob($cache_path.'*.'.AssetManagerConfig::$script_file_extension) as $script_cache_file)
         {
-            $this->set(basename($script_cache_file, '.'.\AssetManager::$script_file_extension), CombinedScriptAsset::init_existing($script_cache_file));
+            $this->set(basename($script_cache_file, '.'.AssetManagerConfig::$script_file_extension), CombinedScriptAsset::init_existing($script_cache_file));
         }
     }
 }
