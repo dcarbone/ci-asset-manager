@@ -105,7 +105,7 @@ class LessStyleAssetCollection extends StyleAssetCollection
         if (file_exists($path))
         {
             /** @var CombinedLessStyleAsset $asset */
-            $asset = CombinedLessStyleAsset::init_existing($path);
+            $asset = CombinedLessStyleAsset::init_existing($path, $this->config);
             $asset->set_media($media);
             $this->set($asset->get_name(), $asset);
             return true;

@@ -63,7 +63,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
                 $combine_files[] = &$this[$asset_name];
             }
 
-            $combined_asset = CombinedScriptAsset::init_new($combine_files, $combined_asset_name);
+            $combined_asset = CombinedScriptAsset::init_new($combine_files, $combined_asset_name, $this->config);
 
             if ($combined_asset === false)
                 return false;
@@ -84,7 +84,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
         $cache_path = $this->config->get_cache_path();
         foreach(glob($cache_path.'*.'.AssetManagerConfig::$script_file_extension) as $script_cache_file)
         {
-            $this->set(basename($script_cache_file, '.'.AssetManagerConfig::$script_file_extension), CombinedScriptAsset::init_existing($script_cache_file));
+            $this->set(basename($script_cache_file, '.'.AssetManagerConfig::$script_file_extension), CombinedScriptAsset::init_existing($script_cache_file, $this->config));
         }
     }
 }

@@ -104,7 +104,7 @@ class StyleAssetCollection extends AbstractAssetCollection
                 }
 
                 /** @var CombinedStyleAsset $combined_asset */
-                $combined_asset = CombinedStyleAsset::init_new($combine_files, $combined_asset_name);
+                $combined_asset = CombinedStyleAsset::init_new($combine_files, $combined_asset_name, $this->config);
 
                 if ($combined_asset === false)
                     continue;
@@ -140,7 +140,7 @@ class StyleAssetCollection extends AbstractAssetCollection
         if (file_exists($file_path))
         {
             /** @var CombinedStyleAsset $asset */
-            $asset = CombinedStyleAsset::init_existing($file_path);
+            $asset = CombinedStyleAsset::init_existing($file_path, $this->config);
             $asset->set_media($media);
             $this->set($asset->get_name(), $asset);
             return true;
