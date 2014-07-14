@@ -29,7 +29,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
         $this->prepare_output();
 
         ob_start();
-        foreach($this->output_assets as $asset_name)
+        foreach($this->assets_to_render as $asset_name)
         {
             if (isset($this[$asset_name]))
                 echo $this[$asset_name]->generate_output()."\n";
@@ -49,8 +49,8 @@ class ScriptAssetCollection extends AbstractAssetCollection
         // Load existing cache files
         $this->load_existing_cached_assets();
 
-        $newest_file = $this->get_newest_date_modified($this->output_assets);
-        $asset_names = array_keys($this->output_assets);
+        $newest_file = $this->get_newest_date_modified($this->assets_to_render);
+        $asset_names = array_keys($this->assets_to_render);
 
         $combined_asset_name = md5(AssetManagerConfig::$file_prepend_value.implode('', $asset_names));
         $cache_file = $this->cache_file_exists($combined_asset_name);
@@ -58,7 +58,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
         if ($cache_file === false || ($cache_file !== false && $newest_file > $this[$combined_asset_name]->get_file_date_modified()))
         {
             $combine_files = array();
-            foreach($this->output_assets as $asset_name)
+            foreach($this->assets_to_render as $asset_name)
             {
                 $combine_files[] = &$this[$asset_name];
             }
@@ -71,7 +71,7 @@ class ScriptAssetCollection extends AbstractAssetCollection
             $this->set($combined_asset_name, $combined_asset);
         }
 
-        $this->output_assets = array($combined_asset_name);
+        $this->assets_to_render = array($combined_asset_name);
 
         return true;
     }

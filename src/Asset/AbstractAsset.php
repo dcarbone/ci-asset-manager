@@ -70,8 +70,17 @@ abstract class AbstractAsset implements IAsset
             switch($k)
             {
                 // Parse groups later on
-                case 'group' :
                 case 'groups' :
+                    break;
+
+                case 'requires' :
+                    if (is_string($v) && ($v = trim($v)) !== '')
+                        $this->$k = array($v);
+                    else if (is_array($v))
+                        $this->$k = $v;
+                    else
+                        $this->$k = array();
+
                     break;
 
                 default : $this->$k = $v;
@@ -107,23 +116,11 @@ abstract class AbstractAsset implements IAsset
             // Do a bit of parsing on group value
             if (isset($asset_params['groups']))
                 $groups = $asset_params['groups'];
-            else if (isset($asset_params['group']))
-                $groups = $asset_params['group'];
             else
                 $groups = array();
 
-            if (is_string($groups))
-            {
-                $groups = trim($groups);
-                if ($groups === '')
-                    $groups = array($this->get_name());
-                else
-                    $groups = array($groups);
-            }
-            else if (is_array($groups) && count($groups) === 0)
-            {
-                $groups = array($this->get_name());
-            }
+            if (is_string($groups) && $groups = trim($groups) !== '')
+                $groups = array($groups);
 
             $this->groups = array_unique($groups);
 
@@ -279,13 +276,7 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_requires()
     {
-        if (is_string($this->requires))
-            return array($this->requires);
-
-        if (is_array($this->requires))
-            return $this->requires;
-
-        return array();
+        return $this->requires;
     }
 
     /**

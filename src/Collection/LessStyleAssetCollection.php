@@ -88,7 +88,7 @@ class LessStyleAssetCollection extends StyleAssetCollection
         }
 
         $this->style_medias = $style_medias;
-        $this->output_assets = $output_assets;
+        $this->assets_to_render = $output_assets;
 
         return true;
     }

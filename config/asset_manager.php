@@ -59,13 +59,13 @@ $config['asset_manager'] = array(
                 )
             )
         ),
-    ),
 
-    'default' => array(
-        'styles' => array(
-            array(
-                'file' => 'basic.css',
-            )
+        'default' => array(
+            'styles' => array(
+                array(
+                    'file' => 'basic.css',
+                )
+            ),
         ),
     ),
 );

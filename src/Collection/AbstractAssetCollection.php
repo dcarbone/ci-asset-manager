@@ -20,7 +20,6 @@ use DCarbone\CollectionPlus\AbstractCollectionPlus;
 /**
  * Class AbstractAssetCollection
  *
- * @property array output_assets
  * @package DCarbone\AssetManager\Collection
  */
 abstract class AbstractAssetCollection extends AbstractCollectionPlus implements \SplObserver, \SplSubject
@@ -31,6 +30,9 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
     /** @var array */
     protected $observers = array();
 
+    /** @var array */
+    protected $assets_to_render = array();
+
     /**
      * @param array $data
      * @param \DCarbone\AssetManager\Config\AssetManagerConfig $config
@@ -40,6 +42,8 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
         parent::__construct($data);
 
         $this->config = $config;
+
+        $this->load_existing_cached_assets();
     }
 
     /**
@@ -70,9 +74,10 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
         if (!isset($this[$asset_name]))
             return false;
 
-        $current = $this->output_assets;
+        $current = $this->assets_to_render;
         $current[$asset_name] = $this[$asset_name]->get_requires();
-        $this->output_assets = $current;
+        $this->assets_to_render = $current;
+
         return true;
     }
 
@@ -82,12 +87,12 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
      */
     public function remove_asset_from_output($asset_name)
     {
-        $current = $this->output_assets;
+        $current = $this->assets_to_render;
 
         if (isset($current[$asset_name]))
         {
             unset($current[$asset_name]);
-            $this->output_assets = $current;
+            $this->assets_to_render = $current;
         }
     }
 
@@ -96,7 +101,7 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
      */
     public function reset()
     {
-        $this->output_assets = array();
+        $this->assets_to_render = array();
     }
 
     /**
@@ -117,7 +122,7 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
     {
         $required = array();
 
-        foreach($this->output_assets as $asset_name=>$requires)
+        foreach($this->assets_to_render as $asset_name=>$requires)
         {
             foreach($requires as $require)
             {
@@ -133,11 +138,11 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
             asort($required, SORT_NUMERIC);
             $required = array_reverse($required);
             $reqs = array_keys($required);
-            $this->output_assets = array_unique(array_merge($reqs, array_keys($this->output_assets)));
+            $this->assets_to_render = array_unique(array_merge($reqs, array_keys($this->assets_to_render)));
         }
         else
         {
-            $this->output_assets = array_keys($this->output_assets);
+            $this->assets_to_render = array_keys($this->assets_to_render);
         }
     }
 
@@ -228,11 +233,23 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
      */
     public function notify()
     {
+        $action = func_get_arg(0);
+        $resource = func_get_arg(1);
+
+        switch($action)
+        {
+            case \asset_manager::ASSET_REMOVED :
+                if ($resource instanceof IAsset)
+                    $resource->detach($this);
+
+                break;
+        }
+
         // For now, just pass the message along
         foreach($this->observers as $observer)
         {
             /** @var \SplObserver $observer */
-            $observer->update($this, func_get_arg(0), func_get_arg(1));
+            $observer->update($this, $action, $resource);
         }
     }
 
@@ -281,6 +298,7 @@ abstract class AbstractAssetCollection extends AbstractCollectionPlus implements
         }
         else
         {
+            $this[$offset]->attach($this);
             $this->notify(\asset_manager::ASSET_ADDED, $offset);
         }
     }

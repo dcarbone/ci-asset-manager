@@ -45,7 +45,7 @@ class StyleAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_path()
     {
-        return $config['style_path'];
+        return $this->config->get_style_path();
     }
 
     /**
@@ -55,7 +55,7 @@ class StyleAsset extends AbstractAsset implements IAsset
      */
     public function get_asset_url()
     {
-        return $config['style_url'];
+        return $this->config->get_style_url();
     }
 
     /**

@@ -31,8 +31,7 @@ class StyleAssetCollection extends AbstractAssetCollection
     public function build_output_sequence()
     {
         parent::build_output_sequence();
-
-        foreach($this->output_assets as $asset_name)
+        foreach($this->assets_to_render as $asset_name)
         {
             /** @var StyleAsset $style */
             $style = $this[$asset_name];
@@ -119,7 +118,7 @@ class StyleAssetCollection extends AbstractAssetCollection
         }
 
         $this->style_medias = $style_medias;
-        $this->output_assets = $output_assets;
+        $this->assets_to_render = $output_assets;
 
         return true;
     }

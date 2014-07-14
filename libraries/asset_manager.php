@@ -141,7 +141,7 @@ class asset_manager implements \SplObserver
      *
      * @param array $params
      * @param string $script_name
-     * @return void
+     * @return ScriptAsset|null
      */
     public function add_script_file(array $params, $script_name = '')
     {
@@ -172,6 +172,8 @@ class asset_manager implements \SplObserver
                 $this->script_asset_collection[$name]->add_groups($asset->get_groups());
             else
                 $this->script_asset_collection->set($name, $asset);
+
+            return $this->script_asset_collection[$name];
         }
     }
 
@@ -180,7 +182,7 @@ class asset_manager implements \SplObserver
      *
      * @param array $params
      * @param string $style_name
-     * @return void
+     * @return StyleAsset|null
      */
     public function add_style_file(array $params, $style_name = '')
     {
@@ -217,12 +219,15 @@ class asset_manager implements \SplObserver
                 $this->style_asset_collection[$name]->add_groups($asset->get_groups());
             else
                 $this->style_asset_collection->set($name, $asset);
+
+            return $this->style_asset_collection[$name];
         }
     }
 
     /**
      * @param array $params
      * @param string $less_style_name
+     * @return LessStyleAsset|null
      */
     public function add_less_style_file(array $params, $less_style_name = '')
     {
@@ -251,6 +256,8 @@ class asset_manager implements \SplObserver
                 $this->less_style_asset_collection[$name]->add_groups($asset->get_groups());
             else
                 $this->less_style_asset_collection->set($name, $asset);
+
+            return $this->less_style_asset_collection[$name];
         }
     }
 
@@ -301,15 +308,28 @@ class asset_manager implements \SplObserver
 
         // Parse our script files
         foreach($scripts as $name=>$asset)
-            $this->add_script_file($asset, $name);
+        {
+            $asset = $this->add_script_file($asset, $name);
+
+            if ($asset !== null)
+                $asset->add_groups($group_name);
+        }
 
         // Parse our style files
         foreach($styles as $name=>$asset)
-            $this->add_style_file($asset, $name);
+        {
+            $asset = $this->add_style_file($asset, $name);
+            if ($asset !== null)
+                $asset->add_groups($group_name);
+        }
 
         // Parse less style files
         foreach($less as $name=>$asset)
-            $this->add_less_style_file($asset, $name);
+        {
+            $asset = $this->add_less_style_file($asset, $name);
+            if ($asset !== null)
+                $asset->add_groups($group_name);
+        }
     }
 
     /**
