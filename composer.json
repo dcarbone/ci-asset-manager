@@ -1,0 +1,40 @@
+{
+    "name" : "dcarbone/ci-asset-manager",
+    "type" : "library",
+
+    "description" : "A powerful asset management class for the CodeIgniter PHP framework",
+
+    "keywords": [
+        "php",
+        "codeigniter",
+        "assets",
+        "assetmanager"
+    ],
+    "homepage": "https://github.com/dcarbone/ci-asset-manager",
+    "license": "GPLv3",
+
+    "authors" : [
+        {
+            "name" : "Daniel Carbone",
+            "email" : "daniel.p.carbone@gmail.com"
+        }
+    ],
+
+    "require" : {
+        "php" : ">=5.3.3",
+
+        "dcarbone/collection-plus" : "2.0.*",
+        "dcarbone/curl-plus" : "~0.4",
+
+        "tedivm/jshrink": "~1.0",
+        "oyejorge/less.php": "~1.5"
+    },
+
+    "require-dependencies" : true,
+
+    "autoload" : {
+        "psr-4" : {
+            "DCarbone\\AssetManager\\" : "src/"
+        }
+    }
+}

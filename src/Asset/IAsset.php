@@ -16,7 +16,7 @@
  * Interface IAsset
  * @package DCarbone\AssetManager\Asset
  */
-interface IAsset
+interface IAsset extends \SplSubject
 {
     /**
      * @return bool

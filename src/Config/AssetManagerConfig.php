@@ -102,6 +102,9 @@ class AssetManagerConfig
         /** @var $CFG \CI_Config */
         global $CFG;
 
+        if (key($config) === 'asset_manager')
+            $config = reset($config);
+
         // Set some defaults in case they don't pass anything.
         $defaults = array(
             'base_url'          => '',
@@ -417,7 +420,7 @@ class AssetManagerConfig
     /**
      * @return boolean
      */
-    public function get_minify_scripts()
+    public function can_minify_scripts()
     {
         return $this->minify_scripts;
     }
@@ -433,7 +436,7 @@ class AssetManagerConfig
     /**
      * @return boolean
      */
-    public function get_minify_styles()
+    public function can_minify_styles()
     {
         return $this->minify_styles;
     }
@@ -559,7 +562,7 @@ class AssetManagerConfig
     }
 
     /**
-     * @return mixed
+     * @return array
      */
     public function get_config_styles()
     {

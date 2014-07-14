@@ -2,6 +2,8 @@
 
 date_default_timezone_set('UTC');
 
+require realpath(dirname(__FILE__).'/../vendor/autoload.php');
+
 /*
  *---------------------------------------------------------------
  * APPLICATION ENVIRONMENT

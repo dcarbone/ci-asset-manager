@@ -51,25 +51,28 @@ abstract class AbstractAsset implements IAsset
     /** @var \DateTime */
     public $date_modified;
 
+    /** @var array */
+    protected $observers = array();
+
     /**
      * Constructor
      *
      * @param array $asset_params
      * @param \DCarbone\AssetManager\Config\AssetManagerConfig $config
      */
-    public function __construct(array $asset_params, AssetManagerConfig &$config)
+    public function __construct(array $asset_params, AssetManagerConfig $config)
     {
-        $this->config = &$config;
+        $this->config = $config;
 
         foreach($asset_params as $k=>$v)
         {
+            // Set some class params
             switch($k)
             {
+                // Parse groups later on
                 case 'group' :
-                    $k = 'groups';
                 case 'groups' :
-                    if (is_string($v))
-                        $v = array($v);
+                    break;
 
                 default : $this->$k = $v;
             }
@@ -89,9 +92,40 @@ abstract class AbstractAsset implements IAsset
         }
         else
         {
-            $this->file_path = $this->get_file_path();
-            $this->file_url = $this->get_file_url($this->file);
             $this->valid = true;
+
+            // Set up path and URL properties
+            if (preg_match("#^(http://|https://|//)#i", $this->file))
+                $this->file_url = $this->file;
+            else
+                $this->file_url = $this->get_asset_url().$this->file;
+            if (preg_match("#^(http://|https://|//)#i", $this->file))
+                $this->file_path = $this->file;
+            else
+                $this->file_path = $this->get_asset_path().$this->file;
+
+            // Do a bit of parsing on group value
+            if (isset($asset_params['groups']))
+                $groups = $asset_params['groups'];
+            else if (isset($asset_params['group']))
+                $groups = $asset_params['group'];
+            else
+                $groups = array();
+
+            if (is_string($groups))
+            {
+                $groups = trim($groups);
+                if ($groups === '')
+                    $groups = array($this->get_name());
+                else
+                    $groups = array($groups);
+            }
+            else if (is_array($groups) && count($groups) === 0)
+            {
+                $groups = array($this->get_name());
+            }
+
+            $this->groups = array_unique($groups);
 
             if ($this->file_path === null || $this->file_path === false)
                 $this->date_modified = false;
@@ -99,6 +133,9 @@ abstract class AbstractAsset implements IAsset
                 $this->date_modified = new \DateTime('@'.(string)filemtime($this->file_path), AssetManagerConfig::$DateTimeZone);
             else
                 $this->date_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
+
+            if (function_exists('log_message'))
+                log_message('debug', __CLASS__.' "'.$this->get_name().'" initialized');
         }
     }
 
@@ -154,13 +191,6 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_file_url()
     {
-        if ($this->file_url === null)
-        {
-            if (preg_match("#^(http://|https://|//)#i", $this->file))
-                $this->file_url = $this->file;
-            else
-                $this->file_url = $this->get_asset_url().$this->file;
-        }
         return $this->file_url;
     }
 
@@ -172,14 +202,6 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_file_path()
     {
-        if ($this->file_path === null)
-        {
-            if (preg_match("#^(http://|https://|//)#i", $this->file))
-                $this->file_path = $this->file;
-            else
-                $this->file_path = $this->get_asset_path().$this->file;
-        }
-
         return $this->file_path;
     }
 
@@ -244,6 +266,8 @@ abstract class AbstractAsset implements IAsset
                 $this->add_groups($group);
             }
         }
+
+        $this->notify();
 
         return $this;
     }
@@ -641,5 +665,50 @@ abstract class AbstractAsset implements IAsset
     public static function is_url($string)
     {
         return filter_var($string, FILTER_VALIDATE_URL);
+    }
+
+    /**
+     * (PHP 5 >= 5.1.0)
+     * Attach an SplObserver
+     * @link http://php.net/manual/en/splsubject.attach.php
+     *
+     * @param \SplObserver $observer the SplObserver to attach.
+     * @return void
+     */
+    public function attach(\SplObserver $observer)
+    {
+        if (!in_array($observer, $this->observers, true))
+            $this->observers[] = $observer;
+    }
+
+    /**
+     * (PHP 5 >= 5.1.0)
+     * Detach an observer
+     * @link http://php.net/manual/en/splsubject.detach.php
+     *
+     * @param \SplObserver $observer the SplObserver to detach.
+     * @return void
+     */
+    public function detach(\SplObserver $observer)
+    {
+        $idx = array_search($observer, $this->observers, true);
+        if ($idx !== false)
+            unset($this->observers[$idx]);
+    }
+
+    /**
+     * (PHP 5 >= 5.1.0)
+     * Notify an observer
+     * @link http://php.net/manual/en/splsubject.notify.php
+     *
+     * @return void
+     */
+    public function notify()
+    {
+        foreach($this->observers as $observer)
+        {
+            /** @var \SplObserver $observer */
+            $observer->update($this);
+        }
     }
 }

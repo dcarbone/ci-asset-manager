@@ -1,4 +1,4 @@
-<?php
+<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
 // Copyright (c) 2012-2014 Daniel Carbone
 
@@ -12,46 +12,8 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-// Define a few file path constants
-define('ASSET_MANAGER_ROOT_DIR', realpath(__DIR__).DIRECTORY_SEPARATOR);
-define('ASSET_MANAGER_CLASSPATH', ASSET_MANAGER_ROOT_DIR.'DCarbone'.DIRECTORY_SEPARATOR.'AssetManager'.DIRECTORY_SEPARATOR);
-define('ASSET_MANAGER_ASSET_CLASSPATH', ASSET_MANAGER_CLASSPATH.'Asset'.DIRECTORY_SEPARATOR);
-define('ASSET_MANAGER_COLLECTION_CLASSPATH', ASSET_MANAGER_CLASSPATH.'Collection'.DIRECTORY_SEPARATOR);
-
-if (!class_exists('CssMin'))
-    require ASSET_MANAGER_ROOT_DIR.'CssMin.php';
-
-// Ensure JShrink is loaded
-if (!class_exists('\JShrink\Minifier'))
-    require ASSET_MANAGER_ROOT_DIR.'JShrink'.DIRECTORY_SEPARATOR.'Minifier.php';
-
-// Require and load the Less Autoloader class
-if (!class_exists('Less_Autoloader'))
-{
-    require ASSET_MANAGER_ROOT_DIR.'Less'.DIRECTORY_SEPARATOR.'Autoloader.php';
-    Less_Autoloader::register();
-}
-
-// Require config class
-require ASSET_MANAGER_CLASSPATH.'Config'.DIRECTORY_SEPARATOR.'AssetManagerConfig.php';
-
-// Require Asset Interface definition
-require ASSET_MANAGER_ASSET_CLASSPATH.'IAsset.php';
-
-// Require class files
-require ASSET_MANAGER_ASSET_CLASSPATH.'AbstractAsset.php';
-require ASSET_MANAGER_ASSET_CLASSPATH.'ScriptAsset.php';
-require ASSET_MANAGER_ASSET_CLASSPATH.'StyleAsset.php';
-require ASSET_MANAGER_ASSET_CLASSPATH.'LessStyleAsset.php';
-require ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'AbstractCombinedAsset.php';
-require ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedScriptAsset.php';
-require ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedStyleAsset.php';
-require ASSET_MANAGER_ASSET_CLASSPATH.'Combined'.DIRECTORY_SEPARATOR.'CombinedLessStyleAsset.php';
-require ASSET_MANAGER_COLLECTION_CLASSPATH.'AbstractAssetCollection.php';
-require ASSET_MANAGER_COLLECTION_CLASSPATH.'StyleAssetCollection.php';
-require ASSET_MANAGER_COLLECTION_CLASSPATH.'ScriptAssetCollection.php';
-require ASSET_MANAGER_COLLECTION_CLASSPATH.'LessStyleAssetCollection.php';
+if (!class_exists('\Composer\Autoload\ClassLoader'))
+    require FCPATH.'vendor/autoload.php';
 
 use DCarbone\AssetManager\Asset\LessStyleAsset;
 use DCarbone\AssetManager\Asset\ScriptAsset;
@@ -63,8 +25,13 @@ use DCarbone\AssetManager\Collection\StyleAssetCollection;
 /**
  * Class asset_manager
  */
-class asset_manager
+class asset_manager implements \SplObserver
 {
+    // These are used as part of the Observer implementation
+    const ASSET_REMOVED = 0;
+    const ASSET_ADDED = 1;
+    const ASSET_MODIFIED = 2;
+
     /** @var \DCarbone\AssetManager\Config\AssetManagerConfig */
     protected $config;
 
@@ -119,19 +86,36 @@ class asset_manager
         $this->script_asset_collection = new ScriptAssetCollection(array(), $this->config);
         $this->less_style_asset_collection = new LessStyleAssetCollection(array(), $this->config);
 
+        // Attach self as observer
+        $this->style_asset_collection->attach($this);
+        $this->script_asset_collection->attach($this);
+        $this->less_style_asset_collection->attach($this);
+
         if (function_exists('log_message'))
             log_message('debug', 'Asset Manager: Library initialized.');
+        
+        foreach($this->config->get_config_groups() as $k=>$v)
+        {
+            $this->add_asset_group(
+                $k,
+                (isset($v['scripts']) ? $v['scripts'] : array()),
+                (isset($v['styles']) ? $v['styles'] : array()),
+                (isset($v['less_styles']) ? $v['less_styles'] : array()),
+                (isset($v['groups'])  ? $v['groups']  : array())
+            );
+        }
 
+        foreach($this->config->get_config_styles() as $k=>$v)
+            $this->add_style_file($v, $k);
+        
+        foreach($this->config->get_config_scripts() as $k=>$v)
+            $this->add_script_file($v, $k);
+        
+        foreach($this->config->get_config_less_styles() as $k=>$v)
+            $this->add_less_style_file($v, $k);
+        
         // Load up the default group
         $this->load_groups('default');
-    }
-
-    /**
-     * @return \DCarbone\AssetManager\Config\AssetManagerConfig
-     */
-    public function &get_config()
-    {
-        return $this->config;
     }
 
     /**
@@ -166,8 +150,8 @@ class asset_manager
             'minify' => true,
             'cache' => true,
             'name' => (is_numeric($script_name) ? '' : $script_name),
-            'group' => array('default'),
-            'requires' => array()
+            'group' => '',
+            'requires' => '',
         );
 
         // Sanitize our parameters
@@ -177,35 +161,17 @@ class asset_manager
                 $params[$k] = $v;
         }
 
-        $params['minify_able'] = ($params['minify'] && $this->minify_scripts);
+        $params['minify_able'] = ($params['minify'] && $this->config->can_minify_scripts());
 
         $asset = new ScriptAsset($params, $this->config);
 
         if ($asset->valid === true)
         {
             $name = $asset->get_name();
-            $groups = $asset->get_groups();
-
-            foreach($groups as $group)
-            {
-                $this->init_group($group);
-
-                if (!in_array($name, $this->groups[$group]['scripts']))
-                    $this->groups[$group]['scripts'][] = $name;
-            }
-
-            // If an asset with the same name already exists, merge groups and move on
             if (isset($this->script_asset_collection[$name]))
-            {
-                /** @var ScriptAsset $current_asset */
-                $current_asset = $this->script_asset_collection[$name];
-                $current_asset->add_groups($groups);
-                $this->script_asset_collection->set($name, $current_asset);
-            }
+                $this->script_asset_collection[$name]->add_groups($asset->get_groups());
             else
-            {
                 $this->script_asset_collection->set($name, $asset);
-            }
         }
     }
 
@@ -224,8 +190,8 @@ class asset_manager
             'minify'    => true,
             'cache'     => true,
             'name'      => (is_numeric($style_name) ? '' : $style_name),
-            'group'     => array('default'),
-            'requires'  => array()
+            'group'     => '',
+            'requires'  => '',
         );
 
         // Sanitize our parameters
@@ -235,7 +201,7 @@ class asset_manager
                 $params[$k] = $v;
         }
 
-        $params['minify_able'] = ($params['minify'] && $this->minify_styles);
+        $params['minify_able'] = ($params['minify'] && $this->config->can_minify_styles());
 
         // Do a quick sanity check on $group
         if (is_string($params['group']) && $params['group'] !== '')
@@ -247,27 +213,10 @@ class asset_manager
         if ($asset->valid === true)
         {
             $name = $asset->get_name();
-            $groups = $asset->get_groups();
-
-            foreach($groups as $group)
-            {
-                $this->init_group($group);
-
-                if (!in_array($name, $this->groups[$group]['styles']))
-                    $this->groups[$group]['styles'][] = $name;
-            }
-
             if (isset($this->style_asset_collection[$name]))
-            {
-                /** @var StyleAsset $current_asset */
-                $current_asset = $this->style_asset_collection[$name];
-                $current_asset->add_groups($groups);
-                $this->style_asset_collection->set($name, $current_asset);
-            }
+                $this->style_asset_collection[$name]->add_groups($asset->get_groups());
             else
-            {
                 $this->style_asset_collection->set($name, $asset);
-            }
         }
     }
 
@@ -281,8 +230,8 @@ class asset_manager
             'file'  => '',
             'media'     => 'all',
             'name'      => (is_numeric($less_style_name) ? '' : $less_style_name),
-            'group'     => array('default'),
-            'requires'  => array()
+            'group'     => '',
+            'requires'  => '',
         );
 
         // Sanitize our parameters
@@ -292,37 +241,16 @@ class asset_manager
                 $params[$k] = $v;
         }
 
-        // Do a quick sanity check on $group
-        if (is_string($params['group']) && $params['group'] !== '')
-            $params['group'] = array($params['group']);
-
         // Create a new Asset
         $asset = new LessStyleAsset($params, $this->config);
 
         if ($asset->valid === true)
         {
             $name = $asset->get_name();
-            $groups = $asset->get_groups();
-
-            foreach($groups as $group)
-            {
-                $this->init_group($group);
-
-                if (!in_array($name, $this->groups[$group]['less_styles']))
-                    $this->groups[$group]['less_styles'][] = $name;
-            }
-
             if (isset($this->less_style_asset_collection[$name]))
-            {
-                /** @var LessStyleAsset $current_asset */
-                $current_asset = $this->less_style_asset_collection[$name];
-                $current_asset->add_groups($groups);
-                $this->less_style_asset_collection->set($name, $current_asset);
-            }
+                $this->less_style_asset_collection[$name]->add_groups($asset->get_groups());
             else
-            {
                 $this->less_style_asset_collection->set($name, $asset);
-            }
         }
     }
 
@@ -332,7 +260,7 @@ class asset_manager
      */
     protected function init_group($group_name)
     {
-        if (array_key_exists($group_name, $this->groups))
+        if (isset($this->groups[$group_name]))
             return;
 
         $this->groups[$group_name] = array(
@@ -350,90 +278,38 @@ class asset_manager
      * @param array $scripts array of script files
      * @param array $styles array of style files
      * @param array $less array of less style files
-     * @param array $include_groups array of groups to include with this group
+     * @param array $requires_groups array of groups to include with this group
      * @return void
      */
     public function add_asset_group(
-        $group_name = '',
+        $group_name,
         array $scripts = array(),
         array $styles = array(),
         array $less = array(),
-        array $include_groups = array())
+        array $requires_groups = array())
     {
         // Determine if this is a new group or Adding to one that already exists;
         $this->init_group($group_name);
 
         // If this group requires another group...
-        if (count($include_groups) > 0)
+        if (count($requires_groups) > 0)
         {
-            $merged = array_merge($this->groups[$group_name]['groups'], $include_groups);
+            $merged = array_merge($this->groups[$group_name]['groups'], $requires_groups);
             $unique = array_unique($merged);
             $this->groups[$group_name]['groups'] = $unique;
         }
 
         // Parse our script files
-        foreach($scripts as $script_name=>$asset)
-        {
-            $parsed = $this->parse_asset($asset, $group_name);
-            $this->add_script_file($parsed, $script_name);
-        }
-        // Do this so we are sure to have a clean $asset variable
-        unset($asset);
+        foreach($scripts as $name=>$asset)
+            $this->add_script_file($asset, $name);
 
         // Parse our style files
-        foreach($styles as $style_name=>$asset)
-        {
-            $parsed = $this->parse_asset($asset, $group_name);
-            $this->add_style_file($parsed, $style_name);
-        }
-        unset($asset);
+        foreach($styles as $name=>$asset)
+            $this->add_style_file($asset, $name);
 
         // Parse less style files
-        foreach($less as $less_name=>$asset)
-        {
-            $parsed = $this->parse_asset($asset, $group_name);
-            $this->add_less_style_file($parsed, $less_name);
-        }
-    }
-
-    /**
-     * Parse an asset array
-     *
-     * @param   array   $asset_params       pre-parsing asset array
-     * @param   string  $group_name  Name of group defined with asset
-     * @return  array                Parsed asset array
-     */
-    protected function parse_asset(array $asset_params, $group_name)
-    {
-        // If they pass in multiple groups for a specific item within this group.
-        $groups = array();
-        if (!isset($asset_params['group']))
-            $asset_params['group'] = array();
-
-        if (is_string($asset_params['group']))
-            $asset_params['group'] = array($asset_params['group']);
-
-        foreach($asset_params['group'] as $g)
-        {
-            if (is_string($g) && ($g = trim($g)) !== '')
-                $groups[] = $g;
-        }
-
-        // Group name handling
-        if (is_string($group_name))
-            $group_name = array($group_name);
-
-        foreach($group_name as $gn)
-        {
-            if (is_string($gn) && ($gn = trim($gn)) !== '')
-                $groups[] = $gn;
-        }
-
-        // Ensure we don't have duplicate groups here.
-        $groups = array_unique($groups);
-        $asset_params['group'] = $groups;
-
-        return $asset_params;
+        foreach($less as $name=>$asset)
+            $this->add_less_style_file($asset, $name);
     }
 
     /**
@@ -655,5 +531,115 @@ class asset_manager
             return $this->less_style_asset_collection[$less_style_name]->generate_output();
 
         return null;
+    }
+
+    /**
+     * @param array $asset_groups
+     * @param string $asset_type
+     * @param string $asset_name
+     */
+    protected function add_groups_for_asset(array $asset_groups, $asset_type, $asset_name)
+    {
+        foreach($asset_groups as $asset_group)
+        {
+            if (!isset($this->groups[$asset_group]))
+                $this->init_group($asset_group);
+
+            if (!in_array($asset_name, $this->groups[$asset_group][$asset_type]))
+                $this->groups[$asset_group][$asset_type][] = $asset_name;
+        }
+    }
+
+    /**
+     * @param array $asset_groups
+     * @param string $asset_type
+     * @param string $asset_name
+     */
+    protected function remove_asset_from_groups(array $asset_groups, $asset_type, $asset_name)
+    {
+        foreach($asset_groups as $asset_group)
+        {
+            if (isset($this->groups[$asset_group]))
+            {
+                $idx = array_search($asset_name, $this->groups[$asset_group][$asset_type]);
+                if ($idx !== false)
+                    unset($this->groups[$asset_group][$asset_type][$idx]);
+            }
+        }
+    }
+
+    /**
+     * (PHP 5 >= 5.1.0)
+     * Receive update from subject
+     * @link http://php.net/manual/en/splobserver.update.php
+     *
+     * @param SplSubject $subject the SplSubject notifying the observer of an update.
+     * @return void
+     */
+    public function update(SplSubject $subject)
+    {
+        if (func_num_args() === 3)
+        {
+            switch(true)
+            {
+                case ($subject instanceof LessStyleAssetCollection) :
+                    $asset_type = 'less_styles';
+                    break;
+
+                case ($subject instanceof  ScriptAssetCollection) :
+                    $asset_type = 'scripts';
+                    break;
+
+                case ($subject instanceof StyleAssetCollection) :
+                    $asset_type = 'styles';
+                    break;
+
+                default : return;
+            }
+
+            $type = func_get_arg(1);
+            $resource = func_get_arg(2);
+
+            switch($type)
+            {
+                case self::ASSET_ADDED :
+                    if (!isset($subject[$resource]))
+                        return;
+
+                    $this->add_groups_for_asset(
+                        $subject[$resource]->get_groups(),
+                        $asset_type,
+                        $subject[$resource]->get_name()
+                    );
+
+                    break;
+
+                case self::ASSET_REMOVED :
+                    if (!($resource instanceof \DCarbone\AssetManager\Asset\IAsset))
+                        return;
+
+                    $this->remove_asset_from_groups(
+                        $resource->get_groups(),
+                        $asset_type,
+                        $resource->get_name()
+                    );
+
+                    break;
+
+
+                // For now, groups can only be ADDED to assets.
+                case self::ASSET_MODIFIED :
+                    if (!($resource instanceof \DCarbone\AssetManager\Asset\IAsset))
+                        return;
+
+                    $this->add_groups_for_asset(
+                        $resource->get_groups(),
+                        $asset_type,
+                        $resource->get_name()
+                    );
+
+                    break;
+            }
+        }
     }
 }

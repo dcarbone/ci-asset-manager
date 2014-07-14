@@ -1,4 +1,4 @@
-<?php
+<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
 // Copyright (c) 2012-2014 Daniel Carbone
 
@@ -54,26 +54,6 @@ $config['asset_manager'] = array(
             'scripts' => array(
                 'jquery' => array(
                     'file' => '//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js',
-                    'minify' => false,
-                    'cache' => false
-                )
-            )
-        ),
-
-        'jqueryui' => array(
-            'scripts' => array(
-                array(
-                    'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js',
-                    'name' => 'jqueryui',
-                    'minify' => false,
-                    'cache' => false,
-                    'requires' => array('jquery')
-                )
-            ),
-            'styles' => array(
-                array(
-                    'file' => '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css',
-                    'name' => 'jqueryui',
                     'minify' => false,
                     'cache' => false
                 )
