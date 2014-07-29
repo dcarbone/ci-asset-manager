@@ -58,7 +58,6 @@ class asset_manager implements \SplObserver
     public function __construct(array $config = array())
     {
         /** @var $CFG \CI_Config */
-
         global $CFG;
 
         if (count($config) > 0)
@@ -106,13 +105,13 @@ class asset_manager implements \SplObserver
         }
 
         foreach($this->config->get_config_styles() as $k=>$v)
-            $this->add_style_file($v, $k);
+            $this->add_style_file_to_manager($v, $k);
         
         foreach($this->config->get_config_scripts() as $k=>$v)
-            $this->add_script_file($v, $k);
+            $this->add_script_file_to_manager($v, $k);
         
         foreach($this->config->get_config_less_styles() as $k=>$v)
-            $this->add_less_style_file($v, $k);
+            $this->add_less_file_to_manager($v, $k);
         
         // Load up the default group
         $this->load_groups('default');
@@ -143,12 +142,12 @@ class asset_manager implements \SplObserver
      * @param string $script_name
      * @return ScriptAsset|null
      */
-    public function add_script_file(array $params, $script_name = '')
+    public function add_script_file_to_manager(array $params, $script_name = '')
     {
         $defaults = array(
             'file' => '',
             'minify' => true,
-            'cache' => true,
+            'process_brackets' => true,
             'name' => (is_numeric($script_name) ? '' : $script_name),
             'group' => '',
             'requires' => '',
@@ -167,7 +166,7 @@ class asset_manager implements \SplObserver
 
         if ($asset->valid === true)
         {
-            $name = $asset->get_name();
+            $name = $asset->get_asset_name();
             if (isset($this->script_asset_collection[$name]))
                 $this->script_asset_collection[$name]->add_groups($asset->get_groups());
             else
@@ -184,16 +183,16 @@ class asset_manager implements \SplObserver
      * @param string $style_name
      * @return StyleAsset|null
      */
-    public function add_style_file(array $params, $style_name = '')
+    public function add_style_file_to_manager(array $params, $style_name = '')
     {
         $defaults = array(
-            'file'  => '',
-            'media'     => 'all',
-            'minify'    => true,
-            'cache'     => true,
-            'name'      => (is_numeric($style_name) ? '' : $style_name),
-            'group'     => '',
-            'requires'  => '',
+            'file' => '',
+            'media' => 'all',
+            'minify' => true,
+            'process_brackets' => true,
+            'name' => (is_numeric($style_name) ? '' : $style_name),
+            'group' => '',
+            'requires' => '',
         );
 
         // Sanitize our parameters
@@ -214,7 +213,7 @@ class asset_manager implements \SplObserver
 
         if ($asset->valid === true)
         {
-            $name = $asset->get_name();
+            $name = $asset->get_asset_name();
             if (isset($this->style_asset_collection[$name]))
                 $this->style_asset_collection[$name]->add_groups($asset->get_groups());
             else
@@ -229,7 +228,7 @@ class asset_manager implements \SplObserver
      * @param string $less_style_name
      * @return LessStyleAsset|null
      */
-    public function add_less_style_file(array $params, $less_style_name = '')
+    public function add_less_file_to_manager(array $params, $less_style_name = '')
     {
         $defaults = array(
             'file'  => '',
@@ -251,7 +250,7 @@ class asset_manager implements \SplObserver
 
         if ($asset->valid === true)
         {
-            $name = $asset->get_name();
+            $name = $asset->get_asset_name();
             if (isset($this->less_style_asset_collection[$name]))
                 $this->less_style_asset_collection[$name]->add_groups($asset->get_groups());
             else
@@ -309,7 +308,7 @@ class asset_manager implements \SplObserver
         // Parse our script files
         foreach($scripts as $name=>$asset)
         {
-            $asset = $this->add_script_file($asset, $name);
+            $asset = $this->add_script_file_to_manager($asset, $name);
 
             if ($asset !== null)
                 $asset->add_groups($group_name);
@@ -318,7 +317,7 @@ class asset_manager implements \SplObserver
         // Parse our style files
         foreach($styles as $name=>$asset)
         {
-            $asset = $this->add_style_file($asset, $name);
+            $asset = $this->add_style_file_to_manager($asset, $name);
             if ($asset !== null)
                 $asset->add_groups($group_name);
         }
@@ -326,7 +325,7 @@ class asset_manager implements \SplObserver
         // Parse less style files
         foreach($less as $name=>$asset)
         {
-            $asset = $this->add_less_style_file($asset, $name);
+            $asset = $this->add_less_file_to_manager($asset, $name);
             if ($asset !== null)
                 $asset->add_groups($group_name);
         }
@@ -449,15 +448,15 @@ class asset_manager implements \SplObserver
         }
 
         foreach($this->config->get_config_scripts() as $script_name=>$script)
-            $this->add_script_file($script, $script_name);
+            $this->add_script_file_to_manager($script, $script_name);
 
 
         foreach($this->config->get_config_styles() as $style_name=>$style)
-            $this->add_style_file($style, $style_name);
+            $this->add_style_file_to_manager($style, $style_name);
 
 
         foreach($this->config->get_config_less_styles() as $less_name=>$less)
-            $this->add_less_style_file($less, $less_name);
+            $this->add_less_file_to_manager($less, $less_name);
 
         // This will hold the final output string.
         $output = $this->less_style_asset_collection->generate_output();
@@ -629,7 +628,7 @@ class asset_manager implements \SplObserver
                     $this->add_groups_for_asset(
                         $subject[$resource]->get_groups(),
                         $asset_type,
-                        $subject[$resource]->get_name()
+                        $subject[$resource]->get_asset_name()
                     );
 
                     break;
@@ -641,7 +640,7 @@ class asset_manager implements \SplObserver
                     $this->remove_asset_from_groups(
                         $resource->get_groups(),
                         $asset_type,
-                        $resource->get_name()
+                        $resource->get_asset_name()
                     );
 
                     break;
@@ -655,7 +654,7 @@ class asset_manager implements \SplObserver
                     $this->add_groups_for_asset(
                         $resource->get_groups(),
                         $asset_type,
-                        $resource->get_name()
+                        $resource->get_asset_name()
                     );
 
                     break;

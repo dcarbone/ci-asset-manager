@@ -26,7 +26,7 @@ abstract class AbstractAsset implements IAsset
     /** @var array */
     public $groups = array();
     /** @var bool */
-    public $cache = true;
+    public $process_brackets = true;
     /** @var string */
     public $file = null;
     /** @var string */
@@ -36,11 +36,11 @@ abstract class AbstractAsset implements IAsset
     /** @var bool */
     public $minify_able = true;
     /** @var string */
-    public $name = null;
+    public $asset_name = null;
     /** @var string */
-    public $file_path = null;
+    public $source_file_path = null;
     /** @var string */
-    public $file_url = null;
+    public $source_file_url = null;
     /** @var string */
     public $file_name = null;
     /** @var array */
@@ -83,20 +83,22 @@ abstract class AbstractAsset implements IAsset
 
                     break;
 
-                default : $this->$k = $v;
+                default :
+                    if (property_exists($this, $k))
+                        $this->$k = $v;
             }
         }
 
         if ($this->file === null || $this->file === '')
         {
-            $this->file_path = false;
-            $this->file_url = false;
-            $this->_failure(array('details' => __CLASS__.' - Undefined "$file" value seen!'));
+            $this->source_file_path = false;
+            $this->source_file_url = false;
+            $this->_failure(array('details' => __CLASS__.'::__construct - Undefined "$file" value seen!'));
             $this->valid = false;
         }
         else if (!$this->asset_file_exists($this->file))
         {
-            $this->_failure(array('details' => __CLASS__.' - Asset file "'.$this->file.'" not found!'));
+            $this->_failure(array('details' => __CLASS__.'::__construct - Asset file "'.$this->file.'" not found!'));
             $this->valid = false;
         }
         else
@@ -105,13 +107,23 @@ abstract class AbstractAsset implements IAsset
 
             // Set up path and URL properties
             if (preg_match("#^(http://|https://|//)#i", $this->file))
-                $this->file_url = $this->file;
+            {
+                $this->source_file_url = $this->source_file_path = $this->file;
+                $this->file_is_remote = true;
+            }
             else
-                $this->file_url = $this->get_asset_url().$this->file;
-            if (preg_match("#^(http://|https://|//)#i", $this->file))
-                $this->file_path = $this->file;
-            else
-                $this->file_path = $this->get_asset_path().$this->file;
+            {
+                $this->source_file_url = $this->get_asset_url().$this->file;
+                $this->source_file_path = $this->get_asset_path().$this->file;
+            }
+
+            // If no file name is defined, get it.
+            if (!isset($this->file_name) || $this->file_name === null)
+            {
+                preg_match('/[^\\|\/]+$/', $this->file, $match);
+                if (count($match) > 0)
+                    $this->file_name = $match[0];
+            }
 
             // Do a bit of parsing on group value
             if (isset($asset_params['groups']))
@@ -124,42 +136,39 @@ abstract class AbstractAsset implements IAsset
 
             $this->groups = array_unique($groups);
 
-            if ($this->file_path === null || $this->file_path === false)
+            if ($this->source_file_path === null || $this->source_file_path === false)
                 $this->date_modified = false;
-            else if ($this->file_is_remote === false && is_string($this->file_path))
-                $this->date_modified = new \DateTime('@'.(string)filemtime($this->file_path), AssetManagerConfig::$DateTimeZone);
+            else if ($this->file_is_remote === false && is_string($this->source_file_path))
+                $this->date_modified = new \DateTime('@'.(string)filemtime($this->source_file_path), AssetManagerConfig::$DateTimeZone);
             else
                 $this->date_modified = new \DateTime('0:00:00 January 1, 1970 UTC');
 
             if (function_exists('log_message'))
-                log_message('debug', __CLASS__.' "'.$this->get_name().'" initialized');
+                log_message('debug', __CLASS__.' "'.$this->get_asset_name().'" initialized');
         }
     }
 
-
     /**
-     * Determines if this asset is locally cacheable
+     * Determines if this asset utilizes the brackets system
      *
      * @return bool
      */
-    public function can_be_cached()
+    public function can_process_brackets()
     {
-        return $this->cache;
+        return $this->process_brackets;
     }
 
     /**
      * Get Name of current asset
      *
-     * Wrapper method for GetFileName
-     *
      * @return string  name of file
      */
-    public function get_name()
+    public function get_asset_name()
     {
-        if ($this->name === null || $this->name === '')
-            $this->name = $this->get_file_name();
+        if ($this->asset_name === null || $this->asset_name === '')
+            $this->asset_name = $this->get_file_name();
 
-        return $this->name;
+        return $this->asset_name;
     }
 
     /**
@@ -167,17 +176,6 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_file_name()
     {
-        if ($this->file_name === null)
-        {
-            $this->file_name = '';
-            if ($this->file !== '')
-            {
-                preg_match('/[a-zA-Z0-9\.\-_\s]+$/', $this->file, $match);
-
-                if (count($match) > 0)
-                    $this->file_name = reset($match);
-            }
-        }
         return $this->file_name;
     }
 
@@ -186,9 +184,9 @@ abstract class AbstractAsset implements IAsset
      *
      * @return string  asset url
      */
-    public function get_file_url()
+    public function get_source_file_url()
     {
-        return $this->file_url;
+        return $this->source_file_url;
     }
 
 
@@ -197,9 +195,9 @@ abstract class AbstractAsset implements IAsset
      *
      * @return string  asset path
      */
-    public function get_file_path()
+    public function get_source_file_path()
     {
-        return $this->file_path;
+        return $this->source_file_path;
     }
 
     /**
@@ -252,7 +250,7 @@ abstract class AbstractAsset implements IAsset
      */
     public function add_groups($groups)
     {
-        if (is_string($groups) && $groups !== '' && !$this->in_group($groups))
+        if (is_string($groups) && ($groups = trim($groups)) !== '' && !$this->in_group($groups))
         {
             $this->groups[] = $groups;
         }
@@ -284,7 +282,7 @@ abstract class AbstractAsset implements IAsset
      */
     public function get_file_src()
     {
-        if ($this->can_be_cached())
+        if ($this->can_process_brackets())
         {
             $minify = (!$this->config->is_dev() && $this->minify_able);
             $this->create_cache();
@@ -294,7 +292,7 @@ abstract class AbstractAsset implements IAsset
                 return $url;
         }
 
-        return $this->file_url;
+        return $this->source_file_url;
     }
 
     /**
@@ -345,12 +343,12 @@ abstract class AbstractAsset implements IAsset
     {
         $cache_url = $this->config->get_cache_url();
         $ext = $this->get_file_extension();
-        $name = $this->get_name();
+        $name = $this->get_asset_name();
 
-        if ($minified === false && $this->cache_file_exists($minified))
+        if ($minified === false && $this->cached_file_exists($minified))
             return $cache_url.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext;
 
-        if ($minified === true && $this->cache_file_exists($minified))
+        if ($minified === true && $this->cached_file_exists($minified))
             return $cache_url.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext;
 
         return false;
@@ -366,12 +364,12 @@ abstract class AbstractAsset implements IAsset
     {
         $cache_path = $this->config->get_cache_path();
         $ext = $this->get_file_extension();
-        $name = $this->get_name();
+        $name = $this->get_asset_name();
 
-        if ($minified === false && $this->cache_file_exists($minified))
+        if ($minified === false && $this->cached_file_exists($minified))
             return $cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext;
 
-        if ($minified === true && $this->cache_file_exists($minified))
+        if ($minified === true && $this->cached_file_exists($minified))
             return $cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext;
 
         return false;
@@ -383,10 +381,10 @@ abstract class AbstractAsset implements IAsset
      * @param bool  $minified check for minified version
      * @return bool
      */
-    public function cache_file_exists($minified = false)
+    public function cached_file_exists($minified = false)
     {
         $cache_path = $this->config->get_cache_path();
-        $name = $this->get_name();
+        $name = $this->get_asset_name();
         $ext = $this->get_file_extension();
 
         $parsed = $cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext;
@@ -424,213 +422,21 @@ abstract class AbstractAsset implements IAsset
         return true;
     }
 
-    /**
-     * Create Cached versions of asset
-     *
-     * @return bool
-     */
-    public function create_cache()
+    public function localize_remote()
     {
-        if ($this->can_be_cached() === false)
-            return false;
+        var_dump($this->source_file_url);
+        $file = fopen($this->config->get_cache_path().'localized.'.$this->file_name, 'w+');
+        $ch = curl_init($this->source_file_url);
+        curl_setopt_array($ch, array(
+            CURLOPT_FILE => $file,
+            CURLOPT_CONNECTTIMEOUT => 5
+        ));
+        $resp = curl_exec($ch);
+        curl_close($ch);
 
-        $cache_path = $this->config->get_cache_path();
-        $ext = $this->get_file_extension();
-        $name = $this->get_name();
+        fclose($file);
 
-        $_create_parsed_cache = false;
-        $_create_parsed_min_cache = false;
-
-        $modified = $this->get_file_date_modified();
-
-        $parsed = $this->get_cached_file_path(false);
-        $parsed_min = $this->get_cached_file_path(true);
-
-        if ($parsed !== false)
-        {
-            $parsed_modified = $this->get_cached_date_modified($parsed);
-            if ($parsed_modified instanceof \DateTime && $modified > $parsed_modified)
-                $_create_parsed_cache = true;
-        }
-        else
-        {
-            $_create_parsed_cache = true;
-        }
-
-        if ($parsed_min !== false)
-        {
-            $parsed_modified = $this->get_cached_date_modified($parsed_min);
-            if ($parsed_modified instanceof \DateTime && $modified > $parsed_modified)
-                $_create_parsed_min_cache = true;
-        }
-        else
-        {
-            $_create_parsed_min_cache = true;
-        }
-
-        // If we do not have to create any cache files.
-        if ($_create_parsed_cache === false && $_create_parsed_min_cache === false)
-            return true;
-
-        $ref = $this->file_path;
-        $remote = $this->file_is_remote;
-
-        if($remote)
-        {
-            $ch = curl_init($ref);
-            curl_setopt_array($ch, array(
-                CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_CONNECTTIMEOUT => 5
-            ));
-            $contents = curl_exec($ch);
-            curl_close($ch);
-        }
-        else
-        {
-            $contents = file_get_contents($ref);
-        }
-
-        // If there was some issue getting the contents of the file
-        if (!is_string($contents) || $contents === false)
-        {
-            $this->_failure(array('details' => 'Could not get file contents for \'{$ref}\''));
-            return false;
-        }
-
-        $contents = $this->parse_asset_file($contents);
-
-        if ($_create_parsed_min_cache === true)
-        {
-            // If we successfully got the file's contents
-            $minified = $this->minify($contents);
-
-            $min_fopen = fopen($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext, 'w');
-
-            if ($min_fopen === false)
-                return false;
-
-            fwrite($min_fopen, $minified."\n");
-            fclose($min_fopen);
-            chmod($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.min.'.$ext, 0644);
-        }
-
-        if ($_create_parsed_cache === true)
-        {
-            $parsed_fopen = @fopen($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext, 'w');
-
-            if ($parsed_fopen === false)
-                return false;
-
-            fwrite($parsed_fopen, $contents."\n");
-            fclose($parsed_fopen);
-            chmod($cache_path.AssetManagerConfig::$file_prepend_value.$name.'.parsed.'.$ext, 0644);
-        }
-        return true;
-    }
-
-
-    /**
-     * Get Contents for use
-     *
-     * @return string  asset file contents
-     */
-    public function get_asset_contents()
-    {
-        if ($this->can_be_cached())
-            return $this->_get_cached_asset_contents();
-
-        return $this->_get_asset_contents();
-    }
-
-    /**
-     * Parse Asset File and replace key markers
-     *
-     * @param string  $data file contents
-     * @return string  parsed file contents
-     */
-    public function parse_asset_file($data)
-    {
-        foreach($this->get_brackets() as $key=>$value)
-        {
-            if (is_scalar($value))
-                $data = str_replace($key, $value, $data);
-            else if (is_callable($value))
-                $data = $value($key, $data, $this);
-        }
-
-        return $data;
-    }
-
-    /**
-     * Get Contents of Cached Asset
-     *
-     * Attempts to return contents of cached equivalent of file.
-     * If unable, returns normal content;
-     *
-     * @return string
-     */
-    protected function _get_cached_asset_contents()
-    {
-        $cached = $this->create_cache();
-
-        if ($cached === true)
-        {
-            $minify = (!$this->config->is_dev() && $this->minify_able);
-
-            $path = $this->get_cached_file_path($minify);
-
-            if ($path === false)
-                return $this->_get_asset_contents();
-
-            $contents = file_get_contents($path);
-            if (is_string($contents))
-                return $contents;
-
-            return $this->_get_asset_contents();
-        }
-
-        return null;
-    }
-
-    /**
-     * Get Asset File Contents
-     *
-     * @return string;
-     */
-    protected function _get_asset_contents()
-    {
-        $ref = $this->file_path;
-
-        if($this->file_is_remote)
-        {
-            if (substr($ref, 0, 2) === '//')
-                $ref = 'http:'.$ref;
-
-            $ch = curl_init($ref);
-            curl_setopt_array($ch, array(
-                CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_CONNECTTIMEOUT => 5,
-            ));
-            $contents = curl_exec($ch);
-//            $info = curl_getinfo($ch);
-//            $error = curl_error($ch);
-            curl_close($ch);
-        }
-        else
-        {
-            $contents = file_get_contents($ref);
-        }
-
-        // If there was some issue getting the contents of the file
-        if (!is_string($contents) || $contents === false)
-        {
-            $this->_failure(array('details' => 'Could not get file contents for "'.$ref.'"'));
-            return false;
-        }
-
-        $contents = $this->parse_asset_file($contents);
-
-        return $contents;
+        var_dump($resp);exit;
     }
 
     /**
@@ -657,6 +463,17 @@ abstract class AbstractAsset implements IAsset
     {
         return filter_var($string, FILTER_VALIDATE_URL);
     }
+
+
+    /*
+     *
+     *
+     * Observer methods
+     *
+     *
+     *
+     */
+
 
     /**
      * (PHP 5 >= 5.1.0)

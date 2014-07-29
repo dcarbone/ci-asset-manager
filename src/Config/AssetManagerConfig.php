@@ -136,34 +136,43 @@ class AssetManagerConfig
 
         // set the default value for base_url from the config
         if($this->base_url === '')
-            $this->set_base_url($CFG->item('base_url'));
+            $this->base_url = $CFG->item('base_url');
 
         if ($this->base_path === '' && defined('FCPATH'))
-            $this->set_base_path(FCPATH);
+            $this->base_path = FCPATH;
         else if ($this->base_path === '')
             $this->base_path = realpath(dirname(dirname(__FILE__)));
 
+        // Only do this once.
+        $asset_dir_url = str_replace('\\', '/', $this->asset_dir);
+
         // Define the base asset url and path
-        $this->asset_url = str_ireplace(array('http://', 'https://'), '//', $this->base_url) . str_replace('\\', '/', $this->asset_dir) .'/';
-        $this->asset_path = $this->base_path . str_replace('\\', '/', $this->asset_dir) . '/';
+        $this->asset_url = str_ireplace(array('http://', 'https://'), '//', $this->base_url) . $asset_dir_url .'/';
+        $this->asset_path = $this->base_path . $this->asset_dir . '/';
 
         // Define the script url and path
-        $this->script_url = $this->asset_url . str_replace('\\', '/', $this->script_dir) . '/';
+        $this->script_url = $this->asset_url . $asset_dir_url . '/';
         $this->script_path = $this->asset_path . $this->script_dir . DIRECTORY_SEPARATOR;
 
         // Define the style url and path
-        $this->style_url = $this->asset_url . str_replace('\\', '/', $this->style_dir) . '/';
+        $this->style_url = $this->asset_url . $asset_dir_url . '/';
         $this->style_path = $this->asset_path . $this->style_dir . DIRECTORY_SEPARATOR;
         $this->less_style_path = $this->asset_path . $this->less_style_dir . DIRECTORY_SEPARATOR;
 
         // Define the cache url and path
-        $this->cache_url = $this->asset_url . str_replace('\\', '/', $this->cache_dir) . '/';
+        $this->cache_url = $this->asset_url . $asset_dir_url . '/';
         $this->cache_path = $this->asset_path . $this->cache_dir . DIRECTORY_SEPARATOR;
         $this->less_style_url = $this->cache_url;
 
         // Get a DateTimeZone instance
         if (!isset(static::$DateTimeZone))
-            static::$DateTimeZone = new \DateTimeZone('UTC');
+        {
+            $timezone = config_item('time_reference');
+            if (!is_string($timezone) || $timezone === '' || $timezone === 'local')
+                $timezone = date_default_timezone_get();
+
+            static::$DateTimeZone = new \DateTimeZone($timezone);
+        }
 
         // Now that we have our settings set, get any config defined assets!
         if (isset($config['groups']) && is_array($config['groups']))

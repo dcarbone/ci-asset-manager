@@ -41,7 +41,7 @@ $config['asset_manager'] = array(
     // Define scripts
     'scripts' => array(
         'jquery2' => array(
-            'file' => 'http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js',
+            'file' => 'http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js',
             'cache' => false,
             'minify' => false,
         )
@@ -53,7 +53,7 @@ $config['asset_manager'] = array(
         'jquery' => array(
             'scripts' => array(
                 'jquery' => array(
-                    'file' => '//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js',
+                    'file' => 'http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js',
                     'minify' => false,
                     'cache' => false
                 )
@@ -66,6 +66,7 @@ $config['asset_manager'] = array(
                     'file' => 'basic.css',
                 )
             ),
+            'groups' => array('jquery'),
         ),
     ),
 );

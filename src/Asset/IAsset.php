@@ -21,12 +21,12 @@ interface IAsset extends \SplSubject
     /**
      * @return bool
      */
-    public function can_be_cached();
+    public function can_process_brackets();
 
     /**
      * @return string
      */
-    public function get_name();
+    public function get_asset_name();
 
     /**
      * @return string
@@ -98,7 +98,7 @@ interface IAsset extends \SplSubject
      * @param bool $minified
      * @return bool
      */
-    public function cache_file_exists($minified = false);
+    public function cached_file_exists($minified = false);
 
     /**
      * @return bool
@@ -128,12 +128,12 @@ interface IAsset extends \SplSubject
     /**
      * @return string
      */
-    public function get_file_path();
+    public function get_source_file_path();
 
     /**
      * @return string
      */
-    public function get_file_url();
+    public function get_source_file_url();
 
     /**
      * @param string $data
@@ -156,4 +156,9 @@ interface IAsset extends \SplSubject
      * @return array
      */
     public function get_brackets();
+
+    /**
+     * @return string
+     */
+    public function localize_remote();
 }
