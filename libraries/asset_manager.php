@@ -1,590 +1,528 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
-// Copyright (c) 2012-2014 Daniel Carbone
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-if (!class_exists('\Composer\Autoload\ClassLoader'))
-    require FCPATH.'vendor/autoload.php';
-
-use DCarbone\AssetManager\Asset\LessStyleAsset;
-use DCarbone\AssetManager\Asset\ScriptAsset;
-use DCarbone\AssetManager\Asset\StyleAsset;
-use DCarbone\AssetManager\Collection\LessStyleAssetCollection;
-use DCarbone\AssetManager\Collection\ScriptAssetCollection;
-use DCarbone\AssetManager\Collection\StyleAssetCollection;
+if (!class_exists('CssMin'))
+    require __DIR__.DIRECTORY_SEPARATOR.'CssMin.php';
 
 /**
- * Class asset_manager
+ * Interface iasset
  */
-class asset_manager implements \SplObserver
+interface iasset
 {
-    // These are used as part of the Observer implementation
-    const ASSET_REMOVED = 0;
-    const ASSET_ADDED = 1;
-    const ASSET_MODIFIED = 2;
+    /**
+     * @param string $file
+     * @param string $name
+     * @param boolean $minify
+     * @param array $observers
+     * @return \asset
+     */
+    public static function asset_with_file_and_name_and_minify_and_observers($file, $name, $minify, $observers);
 
-    /** @var \DCarbone\AssetManager\Config\AssetManagerConfig */
-    protected $config;
+    /**
+     * @param string $file
+     * @param string $name
+     * @param array $groups
+     * @param boolean $minify
+     * @param array $observers
+     * @return \asset
+     */
+    public static function asset_with_file_and_name_and_groups_and_minify_and_observers($file, $name, $groups, $minify, $observers);
+
+    /**
+     * @param string $param
+     * @return mixed
+     * @throws \OutOfBoundsException
+     */
+    public function __get($param);
+
+    /**
+     * @param string $group
+     * @return bool
+     */
+    public function in_group($group);
+
+    /**
+     * @param string $group
+     * @return void
+     */
+    public function add_to_group($group);
+
+    /**
+     * @param array $groups
+     * @return void
+     */
+    public function add_to_groups(array $groups);
+
+    /**
+     * @param string $group
+     * @return void
+     */
+    public function remove_from_group($group);
+
+    /**
+     * @param array $groups
+     * @return void
+     */
+    public function remove_from_groups(array $groups);
+}
+
+/**
+ * Class ASSET_NOTIFY
+ */
+abstract class ASSET_NOTIFY
+{
+    const INITIALIZED = 0;
+    const GROUP_ADDED = 1;
+    const GROUP_REMOVED = 2;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Class asset
+ *
+ * @property string name
+ * @property string file
+ * @property string type
+ * @property array groups
+ * @property int notify_status
+ * @property bool remote
+ */
+class asset implements \iasset, \SplSubject
+{
+    /** @var int */
+    protected $_notify_status;
+
+    /** @var string */
+    protected $_name;
+
+    /** @var string */
+    protected $_file;
+
+    /** @var string */
+    protected $_type;
 
     /** @var array */
-    protected $groups = array();
+    protected $_groups = array();
+
+    /** @var bool */
+    protected $_minify = true;
+
+    /** @var bool */
+    protected $_remote;
+
     /** @var array */
-    protected $loaded = array();
-
-    /** @var bool */
-    protected $styles_output = false;
-    /** @var bool */
-    protected $scripts_output = false;
-
-    /** @var StyleAssetCollection */
-    protected $style_asset_collection;
-    /** @var ScriptAssetCollection */
-    protected $script_asset_collection;
-    /** @var LessStyleAssetCollection */
-    protected $less_style_asset_collection;
+    private $_observers = array();
 
     /**
      * Constructor
+     *
+     * @param string $file
+     * @param string $name
+     * @param array $groups
+     * @param boolean $minify
+     * @param array $observers
      */
-    public function __construct(array $config = array())
+    protected function __construct($file, $name, $groups, $minify, $observers)
     {
-        /** @var $CFG \CI_Config */
-        global $CFG;
+        $this->_file = $file;
+        $this->_name = $name;
+        $this->_groups = $groups;
+        $this->_minify = $minify;
+        $this->_observers = $observers;
+    }
 
-        if (count($config) > 0)
+    /**
+     * @param string $file
+     * @param string $name
+     * @param boolean $minify
+     * @param array $observers
+     * @return \asset
+     */
+    public static function asset_with_file_and_name_and_minify_and_observers($file, $name, $minify, $observers)
+    {
+        return static::asset_with_file_and_name_and_groups_and_minify_and_observers($file, $name, null, $minify, $observers);
+    }
+
+    /**
+     * @param string $file
+     * @param string $name
+     * @param array $groups
+     * @param boolean $minify
+     * @param array $observers
+     * @throws RuntimeException
+     * @throws InvalidArgumentException
+     * @return \asset
+     */
+    public static function asset_with_file_and_name_and_groups_and_minify_and_observers($file, $name, $groups, $minify, $observers)
+    {
+        if (!is_string($file))
+            throw new \InvalidArgumentException('Argument 1 expected to be string, '.gettype($file).' seen.');
+        if (($file = trim($file)) === '')
+            throw new \InvalidArgumentException('Empty string passed for argument 1.');
+        if (!is_file($file))
+            throw new \RuntimeException('File specified by argument 1 does not exist. Value: "'.$file.'"');
+
+        if ($name === null)
         {
-            if (function_exists('log_message'))
-                log_message('debug', __CLASS__.': Config loaded from array param');
-
-            $this->config = new \DCarbone\AssetManager\Config\AssetManagerConfig($config);
-        }
-        else if ($CFG instanceof \CI_Config && $CFG->load('asset_manager', false, true))
-        {
-            if (function_exists('log_message'))
-                log_message('debug', __CLASS__.': Config Loaded from file.');
-
-            $config_file = $CFG->item('asset_manager');
-            $this->config = new \DCarbone\AssetManager\Config\AssetManagerConfig($config_file);
+            $split = preg_split('#[/\\\]+#', $file);
+            $name = end($split);
         }
         else
         {
-            throw new \RuntimeException('asset_manager::__construct - Unable to initialize asset_manager, no "$CFG" global or "$config" array param seen');
+            if (!is_string($name))
+                throw new \InvalidArgumentException('Argument 2 expected to be null or string, '.gettype($file).' seen.');
+            if (($name = trim($name)) === '')
+                throw new \InvalidArgumentException('Empty string passed for argument 2.');
         }
 
-        // Initialize our AssetCollections
-        $this->style_asset_collection = new StyleAssetCollection(array(), $this->config);
-        $this->script_asset_collection = new ScriptAssetCollection(array(), $this->config);
-        $this->less_style_asset_collection = new LessStyleAssetCollection(array(), $this->config);
+        if (null === $groups)
+            $groups = array($name);
+        else if (!is_array($groups))
+            throw new \InvalidArgumentException('Argument 3 expected to be null or array, '.gettype($groups).' seen.');
 
-        // Attach self as observer
-        $this->style_asset_collection->attach($this);
-        $this->script_asset_collection->attach($this);
-        $this->less_style_asset_collection->attach($this);
+        if (!is_bool($minify))
+            throw new \InvalidArgumentException('Argument 4 expected to be boolean, '.gettype($minify).' seen.');
 
-        if (function_exists('log_message'))
-            log_message('debug', 'Asset Manager: Library initialized.');
-        
-        foreach($this->config->get_config_groups() as $k=>$v)
-        {
-            $this->add_asset_group(
-                $k,
-                (isset($v['scripts']) ? $v['scripts'] : array()),
-                (isset($v['styles']) ? $v['styles'] : array()),
-                (isset($v['less_styles']) ? $v['less_styles'] : array()),
-                (isset($v['groups'])  ? $v['groups']  : array())
-            );
-        }
+        if (null === $observers)
+            $observers = array();
+        else if (!is_array($observers))
+            throw new \InvalidArgumentException('Argument 5 expected to be null or array of objects implementing \\SplObserver.');
 
-        foreach($this->config->get_config_styles() as $k=>$v)
-            $this->add_style_file_to_manager($v, $k);
-        
-        foreach($this->config->get_config_scripts() as $k=>$v)
-            $this->add_script_file_to_manager($v, $k);
-        
-        foreach($this->config->get_config_less_styles() as $k=>$v)
-            $this->add_less_file_to_manager($v, $k);
-        
-        // Load up the default group
-        $this->load_groups('default');
+        /** @var \asset $asset */
+        $asset = new static($file, $name, array_unique($groups), $minify, $observers);
+
+        $asset->initialize();
+
+        return $asset;
     }
 
     /**
-     * Reset all groups
+     * @param string $param
+     * @return array|string
+     * @throws OutOfBoundsException
+     */
+    public function __get($param)
+    {
+        switch($param)
+        {
+            case 'notify_status':
+                return $this->_notify_status;
+
+            case 'name':
+                return $this->_name;
+
+            case 'file':
+                return $this->_file;
+
+            case 'type':
+                return $this->_type;
+
+            case 'groups':
+                return $this->_groups;
+
+            case 'remote':
+                return $this->_remote;
+
+            default:
+                throw new \OutOfBoundsException('ci-asset: No property with name "'.(string)$param.'" exists on this class.');
+        }
+    }
+
+    /**
+     * Post-construct object initialization
+     */
+    protected function initialize()
+    {
+        $this->determine_remote();
+        $this->determine_type();
+
+        $this->_notify_status = ASSET_NOTIFY::INITIALIZED;
+        $this->notify();
+    }
+
+    /**
+     * Determine whether file is remote or not (really dumb test for the moment)
      *
-     * @param   boolean $keep_default keep the default group loaded
-     * @return  void
+     * TODO Improve remote asset determination
      */
-    public function reset_assets($keep_default = true)
+    protected function determine_remote()
     {
-        $this->less_style_asset_collection->reset();
-        $this->script_asset_collection->reset();
-        $this->style_asset_collection->reset();
-
-        $this->loaded = array();
-
-        if ($keep_default === true)
-            $this->load_groups('default');
-    }
-
-    /**
-     * Add Script File
-     *
-     * @param array $params
-     * @param string $script_name
-     * @return ScriptAsset|null
-     */
-    public function add_script_file_to_manager(array $params, $script_name = '')
-    {
-        $defaults = array(
-            'file' => '',
-            'minify' => true,
-            'process_brackets' => true,
-            'name' => (is_numeric($script_name) ? '' : $script_name),
-            'group' => '',
-            'requires' => '',
-        );
-
-        // Sanitize our parameters
-        foreach($defaults as $k=>$v)
+        switch(true)
         {
-            if (!isset($params[$k]))
-                $params[$k] = $v;
-        }
+            case (stripos('http', $this->_file) === 0) :
+            case (stripos('//', $this->_file) === 0):
+                $this->_remote = true;
+                break;
 
-        $params['minify_able'] = ($params['minify'] && $this->config->can_minify_scripts());
-
-        $asset = new ScriptAsset($params, $this->config);
-
-        if ($asset->valid === true)
-        {
-            $name = $asset->get_asset_name();
-            if (isset($this->script_asset_collection[$name]))
-                $this->script_asset_collection[$name]->add_groups($asset->get_groups());
-            else
-                $this->script_asset_collection->set($name, $asset);
-
-            return $this->script_asset_collection[$name];
+            default:
+                $this->_remote = false;
+                break;
         }
     }
 
     /**
-     * Add Style File
-     *
-     * @param array $params
-     * @param string $style_name
-     * @return StyleAsset|null
+     * @throws \RuntimeException
      */
-    public function add_style_file_to_manager(array $params, $style_name = '')
+    protected function determine_type()
     {
-        $defaults = array(
-            'file' => '',
-            'media' => 'all',
-            'minify' => true,
-            'process_brackets' => true,
-            'name' => (is_numeric($style_name) ? '' : $style_name),
-            'group' => '',
-            'requires' => '',
-        );
+        $ext = strrchr('.', $this->_file);
 
-        // Sanitize our parameters
-        foreach($defaults as $k=>$v)
+        switch($ext)
         {
-            if (!isset($params[$k]))
-                $params[$k] = $v;
-        }
+            case '.js':
+                $this->_type = 'javascript';
+                break;
 
-        $params['minify_able'] = ($params['minify'] && $this->config->can_minify_styles());
+            case '.css':
+                $this->_type = 'stylesheet';
+                break;
 
-        // Do a quick sanity check on $group
-        if (is_string($params['group']) && $params['group'] !== '')
-            $params['group'] = array($params['group']);
-
-        // Create a new Asset
-        $asset = new StyleAsset($params, $this->config);
-
-        if ($asset->valid === true)
-        {
-            $name = $asset->get_asset_name();
-            if (isset($this->style_asset_collection[$name]))
-                $this->style_asset_collection[$name]->add_groups($asset->get_groups());
-            else
-                $this->style_asset_collection->set($name, $asset);
-
-            return $this->style_asset_collection[$name];
+            default:
+                throw new \RuntimeException('Asset with ext "'.$ext.'" is not a recognized type.  Recognized types: [.js, .css].');
         }
     }
 
     /**
-     * @param array $params
-     * @param string $less_style_name
-     * @return LessStyleAsset|null
+     * @param string $group
+     * @return bool
      */
-    public function add_less_file_to_manager(array $params, $less_style_name = '')
+    public function in_group($group)
     {
-        $defaults = array(
-            'file'  => '',
-            'media'     => 'all',
-            'name'      => (is_numeric($less_style_name) ? '' : $less_style_name),
-            'group'     => '',
-            'requires'  => '',
-        );
-
-        // Sanitize our parameters
-        foreach($defaults as $k=>$v)
-        {
-            if (!isset($params[$k]))
-                $params[$k] = $v;
-        }
-
-        // Create a new Asset
-        $asset = new LessStyleAsset($params, $this->config);
-
-        if ($asset->valid === true)
-        {
-            $name = $asset->get_asset_name();
-            if (isset($this->less_style_asset_collection[$name]))
-                $this->less_style_asset_collection[$name]->add_groups($asset->get_groups());
-            else
-                $this->less_style_asset_collection->set($name, $asset);
-
-            return $this->less_style_asset_collection[$name];
-        }
+        return in_array($group, $this->_groups, true);
     }
 
     /**
-     * @param string $group_name
+     * @param string $group
      * @return void
      */
-    protected function init_group($group_name)
+    public function add_to_group($group)
     {
-        if (isset($this->groups[$group_name]))
-            return;
-
-        $this->groups[$group_name] = array(
-            'styles' => array(),
-            'scripts' => array(),
-            'less_styles' => array(),
-            'groups' => array(),
-        );
+        if (!in_array($group, $this->_groups, true))
+        {
+            $this->_groups[] = $group;
+            $this->_notify_status = ASSET_NOTIFY::GROUP_ADDED;
+            $this->notify();
+        }
     }
 
     /**
-     * Add Asset Group
-     *
-     * @param string $group_name name of group
-     * @param array $scripts array of script files
-     * @param array $styles array of style files
-     * @param array $less array of less style files
-     * @param array $requires_groups array of groups to include with this group
+     * @param array $groups
      * @return void
      */
-    public function add_asset_group(
-        $group_name,
-        array $scripts = array(),
-        array $styles = array(),
-        array $less = array(),
-        array $requires_groups = array())
+    public function add_to_groups(array $groups)
     {
-        // Determine if this is a new group or Adding to one that already exists;
-        $this->init_group($group_name);
+        $this->_groups = $this->_groups + $groups;
 
-        // If this group requires another group...
-        if (count($requires_groups) > 0)
+        $this->_notify_status = ASSET_NOTIFY::GROUP_ADDED;
+        $this->notify();
+    }
+
+    /**
+     * @param string $group
+     * @return void
+     */
+    public function remove_from_group($group)
+    {
+        $idx = array_search($group, $this->_groups, true);
+        if ($idx !== false)
         {
-            $merged = array_merge($this->groups[$group_name]['groups'], $requires_groups);
-            $unique = array_unique($merged);
-            $this->groups[$group_name]['groups'] = $unique;
-        }
+            unset($this->_groups[$idx]);
 
-        // Parse our script files
-        foreach($scripts as $name=>$asset)
-        {
-            $asset = $this->add_script_file_to_manager($asset, $name);
-
-            if ($asset !== null)
-                $asset->add_groups($group_name);
-        }
-
-        // Parse our style files
-        foreach($styles as $name=>$asset)
-        {
-            $asset = $this->add_style_file_to_manager($asset, $name);
-            if ($asset !== null)
-                $asset->add_groups($group_name);
-        }
-
-        // Parse less style files
-        foreach($less as $name=>$asset)
-        {
-            $asset = $this->add_less_file_to_manager($asset, $name);
-            if ($asset !== null)
-                $asset->add_groups($group_name);
+            $this->_notify_status = ASSET_NOTIFY::GROUP_REMOVED;
+            $this->notify();
         }
     }
 
     /**
-     * Load Scripts for Output
+     * @param array $groups
+     * @return void
+     */
+    public function remove_from_groups(array $groups)
+    {
+        $this->_groups = array_diff($this->_groups, $groups);
+
+        $this->_notify_status = ASSET_NOTIFY::GROUP_REMOVED;
+        $this->notify();
+    }
+
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->_name;
+    }
+
+    /**
+     * (PHP 5 >= 5.1.0)
+     * Attach an SplObserver
+     * @link http://php.net/manual/en/splsubject.attach.php
      *
-     * @param array|string $script_names
-     * @return bool
+     * @param \SplObserver $observer The SplObserver to attach.
+     * @throws \RuntimeException
+     * @return void
      */
-    public function load_scripts($script_names)
+    public function attach(\SplObserver $observer)
     {
-        if ((is_string($script_names) && $script_names === '') || (is_array($script_names) && count($script_names) < 1))
-            return false;
+        if (in_array($observer, $this->_observers, true))
+            throw new \RuntimeException('Cannot add the same observer twice to this object');
 
-        if (is_string($script_names))
-            $script_names = array($script_names);
-
-        foreach($script_names as $name)
-        {
-            $this->script_asset_collection->add_asset_to_output($name);
-        }
-
-        return true;
+        $this->_observers[] = $observer;
     }
 
     /**
-     * Load Style Files for Output
+     * (PHP 5 >= 5.1.0)
+     * Detach an observer
+     * @link http://php.net/manual/en/splsubject.detach.php
      *
-     * @param array|string
-     * @return bool
+     * @param \SplObserver $observer The SplObserver to detach.
+     * @throws \RuntimeException
+     * @return void
      */
-    public function load_styles($style_names)
+    public function detach(\SplObserver $observer)
     {
-        if ((is_string($style_names) && $style_names == '') || (is_array($style_names) && count($style_names) < 1))
-            return false;
+        $idx = array_search($observer, $this->_observers, true);
 
-        if (is_string($style_names))
-            $style_names = array($style_names);
+        if ($idx === false)
+            throw new \RuntimeException('Argument 1 is not an observer of this object.');
 
-        foreach($style_names as $name)
-        {
-            $this->style_asset_collection->add_asset_to_output($name);
-        }
-
-        return true;
+        unset($this->_observers[$idx]);
     }
 
     /**
-     * @param $less_style_names
-     * @return bool
-     */
-    public function load_less_styles($less_style_names)
-    {
-        if ((is_string($less_style_names) && $less_style_names == '') || (is_array($less_style_names) && count($less_style_names) < 1))
-            return false;
-
-        if (is_string($less_style_names))
-            $less_style_names = array($less_style_names);
-
-        foreach($less_style_names as $name)
-        {
-            $this->less_style_asset_collection->add_asset_to_output($name);
-        }
-
-        return true;
-    }
-
-    /**
-     * Load Asset Group for Output
+     * (PHP 5 >= 5.1.0)
+     * Notify an observer
+     * @link http://php.net/manual/en/splsubject.notify.php
      *
-     * @param string|array
-     * @return bool
+     * @return void
      */
-    public function load_groups($groups)
+    public function notify()
     {
-        if ((is_string($groups) && $groups == '') || (is_array($groups) && count($groups) < 1))
-            return false;
-
-        if (!isset($this->loaded['groups']))
-            $this->loaded['groups'] = array();
-
-        if (is_string($groups))
-            $groups = array($groups);
-
-        foreach($groups as $group)
+        for ($i = 0, $count = count($this->_observers); $i < $count; $i++)
         {
-            if (array_key_exists($group, $this->groups) && array_key_exists('groups', $this->groups[$group]) && !array_key_exists($group, $this->loaded['groups']))
+            $this->_observers[$i]->update($this);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Class asset_manager
+ *
+ * @property string asset_dir_name
+ * @property string asset_dir_path
+ * @property string asset_dir_uri
+ */
+class asset_manager implements \SplObserver
+{
+    /** @var array */
+    protected $assets = array();
+
+    /** @var string */
+    protected $_asset_dir_name;
+
+    /** @var string */
+    protected $_asset_dir_path;
+
+    /** @var string */
+    protected $_asset_dir_uri;
+
+    /** @var bool */
+    protected $_force_minify = false;
+
+    /** @var array */
+    protected  $_asset_group_map = array();
+
+    /** @var array */
+    protected $_group_asset_map = array();
+
+    /**
+     * Constructor
+     *
+     * @param array $config
+     * @throws RuntimeException
+     */
+    public function __construct(array $config = array())
+    {
+        /** @var \MY_Controller|\CI_Controller $CI */
+        $CI = &get_instance();
+
+        if (count($config) > 0)
+        {
+            log_message('debug', 'ci-asset-manager - Config loaded from array param.');
+        }
+        else if ($CI instanceof \CI_Controller && $CI->config->load('asset_manager', false, true))
+        {
+            $config = $CI->config->item('asset_manager');
+            log_message('debug', 'ci-asset-manager - Config loaded from file.');
+        }
+
+        if (isset($config['asset_dir_name']))
+        {
+            $this->asset_dir_name = trim((string)$config['asset_dir_name']);
+
+            log_message(
+                'debug',
+                'ci-asset-manager - Using "asset_dir_name" parameter from user configuration.');
+        }
+        else
+        {
+            $this->asset_dir_name = 'assets';
+            log_message(
+                'debug',
+                'ci-asset-manager - User configuration did not specify "asset_dir_name" property, assuming "assets".');
+        }
+
+        $this->asset_dir_path = rtrim(FCPATH.$this->asset_dir_name, "/\\").DIRECTORY_SEPARATOR;
+        $this->asset_dir_uri = rtrim(base_url($this->asset_dir_name), "/").'/';
+
+        if (!file_exists($this->asset_dir_path))
+        {
+            log_message(
+                'debug',
+                'ci-asset-manager - Could not find asset directory "'.$this->asset_dir_path.'", will try to create it.');
+
+            $mkdir = @mkdir($this->asset_dir_path, 0777, true);
+
+            if ($mkdir === false)
             {
-                foreach($this->groups[$group]['groups'] as $rgroup)
-                {
-                    $this->load_groups($rgroup);
-                }
+                log_message(
+                    'error',
+                    'ci-asset-manager - Could not create asset directory "'.$this->asset_dir_path.'".');
+                throw new \RuntimeException('ci-asset-manager: Could not create directory at path: "'.$this->asset_dir_path.'".');
+            }
+            else
+            {
+                log_message(
+                    'debug',
+                    'ci-asset-manager - Directory "'.$this->asset_dir_path.'" successfully created');
 
-                $this->load_styles($this->groups[$group]['styles']);
-                $this->load_scripts($this->groups[$group]['scripts']);
-                $this->load_less_styles($this->groups[$group]['less_styles']);
-                $this->loaded['groups'][$group] = $this->groups[$group];
+                file_put_contents($this->asset_dir_path.'index.html', <<<HTML
+<html>
+<head>
+	<title>403 Forbidden</title>
+</head>
+<body>
+
+<p>Directory access is forbidden.</p>
+
+</body>
+</html>
+HTML
+                );
             }
         }
 
-        return true;
+
     }
 
-    /**
-     * Generate Output for page
-     *
-     * @return string  Output HTML for Styles and Scripts
-     */
-    public function generate_output()
+    public function &get_asset_by_name($name)
     {
-        foreach($this->config->get_config_groups() as $group_name => $assets)
-        {
-            $scripts    = (isset($assets['scripts']) ? $assets['scripts'] : array());
-            $styles     = (isset($assets['styles'])  ? $assets['styles']  : array());
-            $less       = (isset($assets['less_styles'])    ? $assets['less_styles']    : array());
-            $groups     = (isset($assets['groups'])  ? $assets['groups']  : array());
-            $this->add_asset_group($group_name, $scripts, $styles, $less, $groups);
-        }
+        if (isset($this->assets[$name]))
+            return $this->assets[$name];
 
-        foreach($this->config->get_config_scripts() as $script_name=>$script)
-            $this->add_script_file_to_manager($script, $script_name);
-
-
-        foreach($this->config->get_config_styles() as $style_name=>$style)
-            $this->add_style_file_to_manager($style, $style_name);
-
-
-        foreach($this->config->get_config_less_styles() as $less_name=>$less)
-            $this->add_less_file_to_manager($less, $less_name);
-
-        // This will hold the final output string.
-        $output = $this->less_style_asset_collection->generate_output();
-        $output .= $this->style_asset_collection->generate_output();
-        $output .= $this->script_asset_collection->generate_output();
-
-        $this->styles_output = true;
-        $this->scripts_output = true;
-
-        return $output;
-    }
-
-    /**
-     * Generate Script tag Output
-     *
-     * @param array  array of scripts ot Output
-     * @return string  html script elements
-     */
-    public function generate_output_for_scripts(array $script_names)
-    {
-        $this->script_asset_collection->reset();
-        foreach($script_names as $script_name)
-        {
-            $this->script_asset_collection->add_asset_to_output($script_name);
-        }
-
-        return $this->script_asset_collection->generate_output();
-    }
-
-    /**
-     * @param array $style_names
-     * @return string
-     */
-    public function generate_output_for_styles(array $style_names)
-    {
-        $this->style_asset_collection->reset();
-        foreach($style_names as $style_name)
-        {
-            $this->style_asset_collection->add_asset_to_output($style_name);
-        }
-
-        return $this->style_asset_collection->generate_output();
-    }
-
-    /**
-     * @param array $less_style_names
-     * @return string
-     */
-    public function generate_output_for_less_styles(array $less_style_names)
-    {
-        $this->less_style_asset_collection->reset();
-        foreach($less_style_names as $less_style_name)
-        {
-            $this->less_style_asset_collection->add_asset_to_output($less_style_name);
-        }
-
-        return $this->less_style_asset_collection->generate_output();
-    }
-
-    /**
-     * @param string $script_name
-     * @return string
-     */
-    public function generate_output_for_script($script_name)
-    {
-        if (isset($this->script_asset_collection[$script_name]))
-            return $this->script_asset_collection[$script_name]->generate_output();
-
-        return null;
-    }
-
-    /**
-     * @param string $style_name
-     * @return string
-     */
-    public function generate_output_for_style($style_name)
-    {
-        if (isset($this->style_asset_collection[$style_name]))
-            return $this->style_asset_collection[$style_name]->generate_output();
-
-        return null;
-    }
-
-    /**
-     * @param string $less_style_name
-     * @return string
-     */
-    public function generate_output_for_less_style($less_style_name)
-    {
-        if (isset($this->less_style_asset_collection[$less_style_name]))
-            return $this->less_style_asset_collection[$less_style_name]->generate_output();
-
-        return null;
-    }
-
-    /**
-     * @param array $asset_groups
-     * @param string $asset_type
-     * @param string $asset_name
-     */
-    protected function add_groups_for_asset(array $asset_groups, $asset_type, $asset_name)
-    {
-        foreach($asset_groups as $asset_group)
-        {
-            if (!isset($this->groups[$asset_group]))
-                $this->init_group($asset_group);
-
-            if (!in_array($asset_name, $this->groups[$asset_group][$asset_type]))
-                $this->groups[$asset_group][$asset_type][] = $asset_name;
-        }
-    }
-
-    /**
-     * @param array $asset_groups
-     * @param string $asset_type
-     * @param string $asset_name
-     */
-    protected function remove_asset_from_groups(array $asset_groups, $asset_type, $asset_name)
-    {
-        foreach($asset_groups as $asset_group)
-        {
-            if (isset($this->groups[$asset_group]))
-            {
-                $idx = array_search($asset_name, $this->groups[$asset_group][$asset_type]);
-                if ($idx !== false)
-                    unset($this->groups[$asset_group][$asset_type][$idx]);
-            }
-        }
+        throw new \RuntimeException('Asset named "'.$name.'" does not exist.');
     }
 
     /**
@@ -592,70 +530,32 @@ class asset_manager implements \SplObserver
      * Receive update from subject
      * @link http://php.net/manual/en/splobserver.update.php
      *
-     * @param SplSubject $subject the SplSubject notifying the observer of an update.
+     * @param \SplSubject $subject The SplSubject notifying the observer of an update.
      * @return void
      */
-    public function update(SplSubject $subject)
+    public function update(\SplSubject $subject)
     {
-        if (func_num_args() === 3)
+        if ($subject instanceof \asset)
         {
-            switch(true)
+            switch($subject->notify_status)
             {
-                case ($subject instanceof LessStyleAssetCollection) :
-                    $asset_type = 'less_styles';
+                case ASSET_NOTIFY::INITIALIZED:
+                    $this->assets[$subject->name] = $subject;
+                case ASSET_NOTIFY::GROUP_ADDED:
+                    $groups = $subject->groups;
+                    $this->_asset_group_map[$subject->name] = $groups;
+
+                    for($i = 0, $count = count($groups); $i < $count; $i++)
+                    {
+                        $group = $groups[$i];
+                        if (!isset($this->_group_asset_map[$group]))
+                            $this->_group_asset_map[$group] = array();
+
+                        $this->_group_asset_map[$group] = $this->_group_asset_map[$group] + array($subject->name);
+                    }
                     break;
 
-                case ($subject instanceof  ScriptAssetCollection) :
-                    $asset_type = 'scripts';
-                    break;
-
-                case ($subject instanceof StyleAssetCollection) :
-                    $asset_type = 'styles';
-                    break;
-
-                default : return;
-            }
-
-            $type = func_get_arg(1);
-            $resource = func_get_arg(2);
-
-            switch($type)
-            {
-                case self::ASSET_ADDED :
-                    if (!isset($subject[$resource]))
-                        return;
-
-                    $this->add_groups_for_asset(
-                        $subject[$resource]->get_groups(),
-                        $asset_type,
-                        $subject[$resource]->get_asset_name()
-                    );
-
-                    break;
-
-                case self::ASSET_REMOVED :
-                    if (!($resource instanceof \DCarbone\AssetManager\Asset\IAsset))
-                        return;
-
-                    $this->remove_asset_from_groups(
-                        $resource->get_groups(),
-                        $asset_type,
-                        $resource->get_asset_name()
-                    );
-
-                    break;
-
-
-                // For now, groups can only be ADDED to assets.
-                case self::ASSET_MODIFIED :
-                    if (!($resource instanceof \DCarbone\AssetManager\Asset\IAsset))
-                        return;
-
-                    $this->add_groups_for_asset(
-                        $resource->get_groups(),
-                        $asset_type,
-                        $resource->get_asset_name()
-                    );
+                case ASSET_NOTIFY::GROUP_REMOVED:
 
                     break;
             }
