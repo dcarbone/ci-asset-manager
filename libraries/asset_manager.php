@@ -717,13 +717,13 @@ class asset_manager implements \SplObserver
         for($i = 0, $count = count($asset_files); $i < $count; $i++)
         {
             if (strpos($asset_files[$i], '*') !== false)
-                $real_files = $real_files + $this->parse_glob_string($asset_files[$i]);
+                $real_files = array_merge($real_files, $this->parse_glob_string($asset_files[$i]));
             else
                 $real_files[] = $asset_files[$i];
         }
 
         if (isset($this->_logical_groups[$group_name]))
-            $this->_logical_groups[$group_name] = $this->_logical_groups[$group_name] + $real_files;
+            $this->_logical_groups[$group_name] = array_merge($this->_logical_groups[$group_name], $real_files);
         else
             $this->_logical_groups[$group_name] = $real_files;
 
