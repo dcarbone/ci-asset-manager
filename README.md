@@ -17,7 +17,7 @@ I have included these repos in this one.  I DO NOT claim to own the code for eit
 here due to a lack of better CI dependency management.
 
 ## Demo app
-I have included a copy of CI 2.2.0 in this repo as a demonstration tool.  To view it, simply navigate to ``` /demo ``` in any
+I have included a copy of CI 2.2.0 in this repo as a demonstration tool.  To view it, simply navigate to ` /demo ` in any
 browser.  Note: Requires you have the ability to run <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a>
 applications on whatever machine you view it on.
 
@@ -73,8 +73,8 @@ $this->asset_manager->....
 For now, the logic is very, very simple.  Simply execute the following:
 
 ```php
-echo $this->asset_manager->generate_asset_tag('js/jquery-1.11.1.min.js', true);
-echo $this->asset_manager->generate_asset_tag('css/basic.css', true);
+echo $this->asset_manager->generate_asset_tag('js/jquery-1.11.1.min.js');
+echo $this->asset_manager->generate_asset_tag('css/basic.css');
 ```
 
 ...in a view file of your choosing.
@@ -83,6 +83,8 @@ The first parameter is the path to the asset file relative to the ` asset_dir_re
 config parameter described below.
 
 The second parameter is a boolean flag that will tell asset manager if you explicitly want this asset to be minified or not.
+
+The third parameter is an array of key=>value attributes that you wish to be added to the output.
 
 Further minification details below.
 
@@ -121,3 +123,4 @@ If you do NOT specify a "minify" config parameter, Asset manager will attempt to
 - Logical grouping
 - Physical grouping
 - LESS & SASS support
+- Asset output queuing

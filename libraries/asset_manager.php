@@ -645,9 +645,10 @@ class asset_manager implements \SplObserver
     /**
      * @param string $file
      * @param bool $force_minify
+     * @param array $attributes
      * @return string
      */
-    public function generate_asset_tag($file, $force_minify = null)
+    public function generate_asset_tag($file, $force_minify = null, $attributes = array())
     {
         $asset = $this->get_asset($file);
 
@@ -657,10 +658,10 @@ class asset_manager implements \SplObserver
         switch($asset->type)
         {
             case 'javascript':
-                return \asset_output_generator::output_javascript_asset($asset, $force_minify);
+                return \asset_output_generator::output_javascript_asset($asset, $force_minify, $attributes);
 
             case 'stylesheet':
-                return \asset_output_generator::output_stylesheet_asset($asset, $force_minify);
+                return \asset_output_generator::output_stylesheet_asset($asset, $force_minify, $attributes);
 
             default: return '';
         }
@@ -715,11 +716,13 @@ abstract class asset_output_generator
     /**
      * @param asset $asset
      * @param bool $minify
+     * @param array $attributes
      * @return string
      */
-    public static function output_javascript_asset(\asset $asset, $minify)
+    public static function output_javascript_asset(\asset $asset, $minify, $attributes)
     {
         $include_filename = $asset->name;
+        $attribute_string = self::generate_asset_attribute_string($attributes);
 
         if ($minify)
         {
@@ -731,7 +734,8 @@ abstract class asset_output_generator
                     'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
         }
 
-        return '<script src="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_filename).'" type="text/javascript"></script>'."\n";
+        return '<script src="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_filename).
+            '" type="text/javascript"'.$attribute_string.'></script>'."\n";
     }
 
     /**
@@ -754,11 +758,13 @@ abstract class asset_output_generator
     /**
      * @param \asset $asset
      * @param bool $minify
+     * @param array $attributes
      * @return string
      */
-    public static function output_stylesheet_asset(\asset $asset, $minify)
+    public static function output_stylesheet_asset(\asset $asset, $minify, $attributes)
     {
         $include_name = $asset->name;
+        $attribute_string = self::generate_asset_attribute_string($attributes);
 
         if ($minify)
         {
@@ -770,7 +776,8 @@ abstract class asset_output_generator
                     'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
         }
 
-        return '<link rel="stylesheet" type="text/css" href="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_name).'" />'."\n";
+        return '<link href="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_name).
+            'rel="stylesheet" type="text/css"'.$attribute_string.'" />'."\n";
     }
 
     /**
@@ -788,5 +795,23 @@ abstract class asset_output_generator
            $ok = (bool)@file_put_contents($asset->minify_file, \CssMin::minify(file_get_contents($asset->file)));
 
         return $ok;
+    }
+
+    /**
+     * @param array $attributes
+     * @return string
+     */
+    protected static function generate_asset_attribute_string($attributes)
+    {
+        if (!is_array($attributes))
+            return '';
+
+        $string = '';
+        while (($key = key($attributes)) !== null && ($value = current($attributes)) !== false)
+        {
+            $string .= " {$key}='{$value}'";
+        }
+
+        return $string;
     }
 }
