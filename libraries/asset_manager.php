@@ -3,6 +3,9 @@
 if (!class_exists('CssMin'))
     require __DIR__.DIRECTORY_SEPARATOR.'CssMin.php';
 
+if (!class_exists('\\JShrink\\Minifier'))
+    require __DIR__.'/JShrink/Minifier.php';
+
 /**
  * Interface iasset
  */
@@ -10,22 +13,20 @@ interface iasset
 {
     /**
      * @param string $file
-     * @param string $name
      * @param boolean $minify
      * @param array $observers
      * @return \asset
      */
-    public static function asset_with_file_and_name_and_minify_and_observers($file, $name, $minify, $observers);
+    public static function asset_with_file_and_minify_and_observers($file, $minify, $observers);
 
     /**
      * @param string $file
-     * @param string $name
      * @param array $groups
      * @param boolean $minify
      * @param array $observers
      * @return \asset
      */
-    public static function asset_with_file_and_name_and_groups_and_minify_and_observers($file, $name, $groups, $minify, $observers);
+    public static function asset_with_file_and_groups_and_minify_and_observers($file, $groups, $minify, $observers);
 
     /**
      * @param string $param
@@ -81,14 +82,22 @@ abstract class ASSET_NOTIFY
  * Class asset
  *
  * @property string name
+ * @property string minify_name
  * @property string file
+ * @property string minify_file
  * @property string type
  * @property array groups
  * @property int notify_status
- * @property bool remote
+ * @property bool minify
+ * @property bool source_is_minified
+ * @property \DateTime source_last_modified
+ * @property \DateTime minify_last_modified
  */
 class asset implements \iasset, \SplSubject
 {
+    /** @var string */
+    public static $_asset_dir_full_path;
+
     /** @var int */
     protected $_notify_status;
 
@@ -96,7 +105,13 @@ class asset implements \iasset, \SplSubject
     protected $_name;
 
     /** @var string */
+    protected $_minify_name;
+
+    /** @var string */
     protected $_file;
+
+    /** @var string */
+    protected $_minify_file;
 
     /** @var string */
     protected $_type;
@@ -108,7 +123,13 @@ class asset implements \iasset, \SplSubject
     protected $_minify = true;
 
     /** @var bool */
-    protected $_remote;
+    protected $_source_is_minified = false;
+
+    /** @var \DateTime */
+    protected $_source_last_modified;
+
+    /** @var \DateTime */
+    protected $_minify_last_modified;
 
     /** @var array */
     private $_observers = array();
@@ -129,23 +150,23 @@ class asset implements \iasset, \SplSubject
         $this->_groups = $groups;
         $this->_minify = $minify;
         $this->_observers = $observers;
+
+        $this->_source_last_modified = \DateTime::createFromFormat('U', filemtime($file));
     }
 
     /**
      * @param string $file
-     * @param string $name
      * @param boolean $minify
      * @param array $observers
      * @return \asset
      */
-    public static function asset_with_file_and_name_and_minify_and_observers($file, $name, $minify, $observers)
+    public static function asset_with_file_and_minify_and_observers($file, $minify, $observers)
     {
-        return static::asset_with_file_and_name_and_groups_and_minify_and_observers($file, $name, null, $minify, $observers);
+        return static::asset_with_file_and_groups_and_minify_and_observers($file, null, $minify, $observers);
     }
 
     /**
      * @param string $file
-     * @param string $name
      * @param array $groups
      * @param boolean $minify
      * @param array $observers
@@ -153,27 +174,21 @@ class asset implements \iasset, \SplSubject
      * @throws InvalidArgumentException
      * @return \asset
      */
-    public static function asset_with_file_and_name_and_groups_and_minify_and_observers($file, $name, $groups, $minify, $observers)
+    public static function asset_with_file_and_groups_and_minify_and_observers($file, $groups, $minify, $observers)
     {
         if (!is_string($file))
             throw new \InvalidArgumentException('Argument 1 expected to be string, '.gettype($file).' seen.');
         if (($file = trim($file)) === '')
             throw new \InvalidArgumentException('Empty string passed for argument 1.');
-        if (!is_file($file))
-            throw new \RuntimeException('File specified by argument 1 does not exist. Value: "'.$file.'"');
 
-        if ($name === null)
-        {
-            $split = preg_split('#[/\\\]+#', $file);
-            $name = end($split);
-        }
-        else
-        {
-            if (!is_string($name))
-                throw new \InvalidArgumentException('Argument 2 expected to be null or string, '.gettype($file).' seen.');
-            if (($name = trim($name)) === '')
-                throw new \InvalidArgumentException('Empty string passed for argument 2.');
-        }
+        $realpath = realpath($file);
+
+        if ($realpath === false)
+            throw new \RuntimeException('File specified by argument 1 does not exist. Value: "'.$file.'".');
+        if (!is_readable($realpath))
+            throw new \RuntimeException('File specified by argument 1 is not readable.  Value: "'.$file.'".');
+
+        $name = preg_replace(array('#[/\\\]+#', '#'.addslashes(self::$_asset_dir_full_path).'#i'), array(DIRECTORY_SEPARATOR, ''), $realpath);
 
         if (null === $groups)
             $groups = array($name);
@@ -189,7 +204,7 @@ class asset implements \iasset, \SplSubject
             throw new \InvalidArgumentException('Argument 5 expected to be null or array of objects implementing \\SplObserver.');
 
         /** @var \asset $asset */
-        $asset = new static($file, $name, array_unique($groups), $minify, $observers);
+        $asset = new static($realpath, $name, array_unique($groups), $minify, $observers);
 
         $asset->initialize();
 
@@ -198,7 +213,7 @@ class asset implements \iasset, \SplSubject
 
     /**
      * @param string $param
-     * @return array|string
+     * @return array|bool|DateTime|int|string
      * @throws OutOfBoundsException
      */
     public function __get($param)
@@ -211,8 +226,14 @@ class asset implements \iasset, \SplSubject
             case 'name':
                 return $this->_name;
 
+            case 'minify_name':
+                return $this->_minify_name;
+
             case 'file':
                 return $this->_file;
+
+            case 'minify_file':
+                return $this->_minify_file;
 
             case 'type':
                 return $this->_type;
@@ -220,11 +241,20 @@ class asset implements \iasset, \SplSubject
             case 'groups':
                 return $this->_groups;
 
-            case 'remote':
-                return $this->_remote;
+            case 'minify':
+                return $this->_minify;
+
+            case 'source_is_minified':
+                return $this->_source_is_minified;
+
+            case 'source_last_modified':
+                return $this->_source_last_modified;
+
+            case 'minify_last_modified':
+                return $this->_minify_last_modified;
 
             default:
-                throw new \OutOfBoundsException('ci-asset: No property with name "'.(string)$param.'" exists on this class.');
+                throw new \OutOfBoundsException('Object does not contain public property with name "'.$param.'".');
         }
     }
 
@@ -233,31 +263,11 @@ class asset implements \iasset, \SplSubject
      */
     protected function initialize()
     {
-        $this->determine_remote();
         $this->determine_type();
+        $this->determine_minified_status();
 
         $this->_notify_status = ASSET_NOTIFY::INITIALIZED;
         $this->notify();
-    }
-
-    /**
-     * Determine whether file is remote or not (really dumb test for the moment)
-     *
-     * TODO Improve remote asset determination
-     */
-    protected function determine_remote()
-    {
-        switch(true)
-        {
-            case (stripos('http', $this->_file) === 0) :
-            case (stripos('//', $this->_file) === 0):
-                $this->_remote = true;
-                break;
-
-            default:
-                $this->_remote = false;
-                break;
-        }
     }
 
     /**
@@ -265,7 +275,7 @@ class asset implements \iasset, \SplSubject
      */
     protected function determine_type()
     {
-        $ext = strrchr('.', $this->_file);
+        $ext = strrchr($this->_file, '.');
 
         switch($ext)
         {
@@ -280,6 +290,60 @@ class asset implements \iasset, \SplSubject
             default:
                 throw new \RuntimeException('Asset with ext "'.$ext.'" is not a recognized type.  Recognized types: [.js, .css].');
         }
+    }
+
+    /**
+     * Determine if a minified version of this asset already exists
+     */
+    protected function determine_minified_status()
+    {
+        $this->determine_source_is_minified();
+
+        if ($this->_source_is_minified)
+        {
+            $this->_minify_name = $this->_name;
+            $this->_minify_last_modified = \DateTime::createFromFormat('U', filemtime($this->_file));
+        }
+        else
+        {
+            $this->determine_minified_name();
+            if (file_exists($this->_minify_file))
+                $this->_minify_last_modified = \DateTime::createFromFormat('U', filemtime($this->_minify_file));
+            else
+                $this->_minify_last_modified = null;
+        }
+    }
+
+    /**
+     * Determine the name to use for the minified version of this asset
+     */
+    protected function determine_minified_name()
+    {
+        switch($this->_type)
+        {
+            case 'javascript':
+                $this->_minify_name = str_replace('.js', '.min.js', $this->_name);
+                $this->_minify_file = str_replace('.js', '.min.js', $this->_file);
+                break;
+
+            case 'stylesheet':
+                $this->_minify_name = str_replace('.css', '.min.css', $this->_name);
+                $this->_minify_file = str_replace('.css', '.min.css', $this->_file);
+                break;
+        }
+    }
+
+    /**
+     * Test to see if source is already a minified asset
+     *
+     * TODO Improve minified source asset check
+     */
+    protected function determine_source_is_minified()
+    {
+        if (preg_match('/[\.\-_]min[\.\-_]/i', $this->_name))
+            $this->_source_is_minified = true;
+        else
+            $this->_source_is_minified = false;
     }
 
     /**
@@ -343,6 +407,15 @@ class asset implements \iasset, \SplSubject
 
         $this->_notify_status = ASSET_NOTIFY::GROUP_REMOVED;
         $this->notify();
+    }
+
+    /**
+     * @param string $filename
+     * @return string
+     */
+    public static function clean_asset_filename($filename)
+    {
+        return str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $filename);
     }
 
     /**
@@ -410,9 +483,10 @@ class asset implements \iasset, \SplSubject
 /**
  * Class asset_manager
  *
- * @property string asset_dir_name
- * @property string asset_dir_path
+ * @property string asset_dir_relative_path
+ * @property string asset_dir_full_path
  * @property string asset_dir_uri
+ * @property boolean minify
  */
 class asset_manager implements \SplObserver
 {
@@ -420,16 +494,16 @@ class asset_manager implements \SplObserver
     protected $assets = array();
 
     /** @var string */
-    protected $_asset_dir_name;
+    protected $_asset_dir_relative_path;
 
     /** @var string */
-    protected $_asset_dir_path;
+    protected $_asset_dir_full_path;
 
     /** @var string */
     protected $_asset_dir_uri;
 
     /** @var bool */
-    protected $_force_minify = false;
+    protected $_minify = true;
 
     /** @var array */
     protected  $_asset_group_map = array();
@@ -443,12 +517,12 @@ class asset_manager implements \SplObserver
      * @param array $config
      * @throws RuntimeException
      */
-    public function __construct(array $config = array())
+    public function __construct($config = array())
     {
         /** @var \MY_Controller|\CI_Controller $CI */
         $CI = &get_instance();
 
-        if (count($config) > 0)
+        if (is_array($config) && count($config) > 0)
         {
             log_message('debug', 'ci-asset-manager - Config loaded from array param.');
         }
@@ -458,71 +532,138 @@ class asset_manager implements \SplObserver
             log_message('debug', 'ci-asset-manager - Config loaded from file.');
         }
 
-        if (isset($config['asset_dir_name']))
+        if (isset($config['asset_manager']))
+            $config = $config['asset_manager'];
+
+        if (isset($config['asset_dir_relative_path']))
         {
-            $this->asset_dir_name = trim((string)$config['asset_dir_name']);
+            log_message('debug', 'ci-asset-manager - Attempting to use "asset_dir_relative_path" from config array.');
 
-            log_message(
-                'debug',
-                'ci-asset-manager - Using "asset_dir_name" parameter from user configuration.');
-        }
-        else
-        {
-            $this->asset_dir_name = 'assets';
-            log_message(
-                'debug',
-                'ci-asset-manager - User configuration did not specify "asset_dir_name" property, assuming "assets".');
-        }
-
-        $this->asset_dir_path = rtrim(FCPATH.$this->asset_dir_name, "/\\").DIRECTORY_SEPARATOR;
-        $this->asset_dir_uri = rtrim(base_url($this->asset_dir_name), "/").'/';
-
-        if (!file_exists($this->asset_dir_path))
-        {
-            log_message(
-                'debug',
-                'ci-asset-manager - Could not find asset directory "'.$this->asset_dir_path.'", will try to create it.');
-
-            $mkdir = @mkdir($this->asset_dir_path, 0777, true);
-
-            if ($mkdir === false)
+            $path = realpath(FCPATH.$config['asset_dir_relative_path']);
+            if ($path !== false)
             {
-                log_message(
-                    'error',
-                    'ci-asset-manager - Could not create asset directory "'.$this->asset_dir_path.'".');
-                throw new \RuntimeException('ci-asset-manager: Could not create directory at path: "'.$this->asset_dir_path.'".');
+                $this->_asset_dir_full_path = $path.DIRECTORY_SEPARATOR;
+                $this->_asset_dir_relative_path = trim($config['asset_dir_relative_path'], "/\\").DIRECTORY_SEPARATOR;
             }
             else
             {
                 log_message(
-                    'debug',
-                    'ci-asset-manager - Directory "'.$this->asset_dir_path.'" successfully created');
+                    'error',
+                    'ci-asset-manager - Could not find specified directory ("'.$config['asset_dir_relative_path'].'") relative to FCPATH constant.');
+                throw new \RuntimeException('Could not find specified directory ("'.$config['asset_dir_relative_path'].'") relative to FCPATH constant.');
+            }
+        }
+        else
+        {
+            log_message(
+                'debug',
+                'ci-asset-manager - "asset_dir_relative_path" config parameter not found, attempting to use "'.FCPATH.'assets".');
 
-                file_put_contents($this->asset_dir_path.'index.html', <<<HTML
-<html>
-<head>
-	<title>403 Forbidden</title>
-</head>
-<body>
-
-<p>Directory access is forbidden.</p>
-
-</body>
-</html>
-HTML
-                );
+            $path = realpath(FCPATH.'assets');
+            if ($path !== false)
+            {
+                $this->_asset_dir_full_path = $path.DIRECTORY_SEPARATOR;
+                $this->_asset_dir_relative_path = 'assets'.DIRECTORY_SEPARATOR;
             }
         }
 
+        if (!is_writable($this->_asset_dir_full_path))
+        {
+            log_message(
+                'error',
+                'ci-asset-manager - Specified asset path "'.$this->_asset_dir_full_path.'" is not writable.');
+            throw new \RuntimeException('Specified asset path "'.$this->_asset_dir_full_path.'" is not writable.');
+        }
 
+        $this->_asset_dir_uri = rtrim(base_url(str_replace(DIRECTORY_SEPARATOR, '/', $this->_asset_dir_relative_path), "/")).'/';
+
+        \asset::$_asset_dir_full_path = $this->_asset_dir_full_path;
+        \asset_output_generator::$_asset_dir_uri = $this->_asset_dir_uri;
+
+        log_message('debug', 'ci-asset-manager - Relative asset dir path set to "'.$this->_asset_dir_relative_path.'".');
+        log_message('debug', 'ci-asset-manager - Full asset dir path set to "'.$this->_asset_dir_full_path.'".');
+        log_message('debug', 'ci-asset-manager - Asset URI set to "'.$this->_asset_dir_uri.'".');
+
+        if (isset($config['minify']))
+            $this->_minify = (bool)$config['minify'];
+        else if (defined('ENVIRONMENT'))
+            $this->_minify = ENVIRONMENT !== 'development';
+
+        log_message('debug', 'ci-asset-manager - Global minify value set to "'.($this->_minify ? 'TRUE' : 'FALSE').'".');
     }
 
-    public function &get_asset_by_name($name)
+    /**
+     * @param string $param
+     * @return string
+     * @throws OutOfBoundsException
+     */
+    public function __get($param)
     {
-        if (isset($this->assets[$name]))
-            return $this->assets[$name];
+        switch($param)
+        {
+            case 'asset_dir_relative_path':
+                return $this->_asset_dir_relative_path;
 
-        throw new \RuntimeException('Asset named "'.$name.'" does not exist.');
+            case 'asset_dir_full_path':
+                return $this->_asset_dir_full_path;
+
+            case 'asset_dir_uri':
+                return $this->_asset_dir_uri;
+
+            case 'minify':
+                return $this->_minify;
+
+            default:
+                throw new \OutOfBoundsException('Object does not contain public property with name "'.$param.'".');
+        }
+    }
+
+    /**
+     * @param string $file
+     * @return \asset
+     */
+    public function &get_asset($file)
+    {
+        $file = \asset::clean_asset_filename($file);
+
+        if (!isset($this->assets[$file]))
+            $this->load_asset($file);
+
+        return $this->assets[$file];
+    }
+
+    /**
+     * @param $filename
+     * @param null $groups
+     * @param bool $minify
+     */
+    public function load_asset($filename, $groups = null, $minify = true)
+    {
+        \asset::asset_with_file_and_groups_and_minify_and_observers($this->_asset_dir_full_path.$filename, $groups, $minify, array($this));
+    }
+
+    /**
+     * @param string $file
+     * @param bool $force_minify
+     * @return string
+     */
+    public function generate_asset_tag($file, $force_minify = null)
+    {
+        $asset = $this->get_asset($file);
+
+        if (!is_bool($force_minify))
+            $force_minify = ($this->_minify && $asset->minify);
+
+        switch($asset->type)
+        {
+            case 'javascript':
+                return \asset_output_generator::output_javascript_asset($asset, $force_minify);
+
+            case 'stylesheet':
+                return \asset_output_generator::output_stylesheet_asset($asset, $force_minify);
+
+            default: return '';
+        }
     }
 
     /**
@@ -560,5 +701,92 @@ HTML
                     break;
             }
         }
+    }
+}
+
+/**
+ * Class asset_output_generator
+ */
+abstract class asset_output_generator
+{
+    /** @var string */
+    public static $_asset_dir_uri;
+
+    /**
+     * @param asset $asset
+     * @param bool $minify
+     * @return string
+     */
+    public static function output_javascript_asset(\asset $asset, $minify)
+    {
+        $include_filename = $asset->name;
+
+        if ($minify)
+        {
+            if ($asset->source_is_minified || self::generate_minified_javascript_asset($asset))
+                $include_filename = $asset->minify_name;
+            else
+                log_message(
+                    'error',
+                    'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
+        }
+
+        return '<script src="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_filename).'" type="text/javascript"></script>'."\n";
+    }
+
+    /**
+     * @param asset $asset
+     * @return bool
+     */
+    protected static function generate_minified_javascript_asset(\asset $asset)
+    {
+        $source_modified = $asset->source_last_modified;
+        $minify_modified = $asset->minify_last_modified;
+
+        $ok = true;
+
+        if (null === $minify_modified || $source_modified > $minify_modified)
+            $ok = (bool)@file_put_contents($asset->minify_file, \JShrink\Minifier::minify(file_get_contents($asset->file)));
+
+        return $ok;
+    }
+
+    /**
+     * @param \asset $asset
+     * @param bool $minify
+     * @return string
+     */
+    public static function output_stylesheet_asset(\asset $asset, $minify)
+    {
+        $include_name = $asset->name;
+
+        if ($minify)
+        {
+            if ($asset->source_is_minified || self::generate_minified_stylesheet_asset($asset))
+                $include_name = $asset->minify_name;
+            else
+                log_message(
+                    'error',
+                    'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
+        }
+
+        return '<link rel="stylesheet" type="text/css" href="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_name).'" />'."\n";
+    }
+
+    /**
+     * @param \asset $asset
+     * @return bool
+     */
+    protected static function generate_minified_stylesheet_asset(\asset $asset)
+    {
+        $source_modified = $asset->source_last_modified;
+        $minify_modified = $asset->minify_last_modified;
+
+        $ok = true;
+
+        if (null === $minify_modified || $source_modified > $minify_modified)
+           $ok = (bool)@file_put_contents($asset->minify_file, \CssMin::minify(file_get_contents($asset->file)));
+
+        return $ok;
     }
 }
