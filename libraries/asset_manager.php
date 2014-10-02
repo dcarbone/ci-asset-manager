@@ -21,12 +21,12 @@ interface iasset
 
     /**
      * @param string $file
-     * @param array $groups
+     * @param array $logical_groups
      * @param boolean $minify
      * @param array $observers
      * @return \asset
      */
-    public static function asset_with_file_and_groups_and_minify_and_observers($file, $groups, $minify, $observers);
+    public static function asset_with_file_and_logical_groups_and_minify_and_observers($file, $logical_groups, $minify, $observers);
 
     /**
      * @param string $param
@@ -39,31 +39,31 @@ interface iasset
      * @param string $group
      * @return bool
      */
-    public function in_group($group);
+    public function in_logical_group($group);
 
     /**
      * @param string $group
      * @return void
      */
-    public function add_to_group($group);
+    public function add_to_logical_group($group);
 
     /**
      * @param array $groups
      * @return void
      */
-    public function add_to_groups(array $groups);
+    public function add_to_logical_groups(array $groups);
 
     /**
      * @param string $group
      * @return void
      */
-    public function remove_from_group($group);
+    public function remove_from_logical_group($group);
 
     /**
      * @param array $groups
      * @return void
      */
-    public function remove_from_groups(array $groups);
+    public function remove_from_logical_groups(array $groups);
 }
 
 /**
@@ -86,7 +86,7 @@ abstract class ASSET_NOTIFY
  * @property string file
  * @property string minify_file
  * @property string type
- * @property array groups
+ * @property array logical_groups
  * @property int notify_status
  * @property bool minify
  * @property bool source_is_minified
@@ -117,7 +117,7 @@ class asset implements \iasset, \SplSubject
     protected $_type;
 
     /** @var array */
-    protected $_groups = array();
+    protected $_logical_groups = array();
 
     /** @var bool */
     protected $_minify = true;
@@ -139,15 +139,15 @@ class asset implements \iasset, \SplSubject
      *
      * @param string $file
      * @param string $name
-     * @param array $groups
+     * @param array $logical_groups
      * @param boolean $minify
      * @param array $observers
      */
-    protected function __construct($file, $name, $groups, $minify, $observers)
+    protected function __construct($file, $name, $logical_groups, $minify, $observers)
     {
         $this->_file = $file;
         $this->_name = $name;
-        $this->_groups = $groups;
+        $this->_logical_groups = $logical_groups;
         $this->_minify = $minify;
         $this->_observers = $observers;
 
@@ -162,19 +162,19 @@ class asset implements \iasset, \SplSubject
      */
     public static function asset_with_file_and_minify_and_observers($file, $minify, $observers)
     {
-        return static::asset_with_file_and_groups_and_minify_and_observers($file, null, $minify, $observers);
+        return static::asset_with_file_and_logical_groups_and_minify_and_observers($file, null, $minify, $observers);
     }
 
     /**
      * @param string $file
-     * @param array $groups
+     * @param array $logical_groups
      * @param boolean $minify
      * @param array $observers
      * @throws RuntimeException
      * @throws InvalidArgumentException
      * @return \asset
      */
-    public static function asset_with_file_and_groups_and_minify_and_observers($file, $groups, $minify, $observers)
+    public static function asset_with_file_and_logical_groups_and_minify_and_observers($file, $logical_groups, $minify, $observers)
     {
         if (!is_string($file))
             throw new \InvalidArgumentException('Argument 1 expected to be string, '.gettype($file).' seen.');
@@ -190,10 +190,10 @@ class asset implements \iasset, \SplSubject
 
         $name = preg_replace(array('#[/\\\]+#', '#'.addslashes(self::$_asset_dir_full_path).'#i'), array(DIRECTORY_SEPARATOR, ''), $realpath);
 
-        if (null === $groups)
-            $groups = array($name);
-        else if (!is_array($groups))
-            throw new \InvalidArgumentException('Argument 3 expected to be null or array, '.gettype($groups).' seen.');
+        if (null === $logical_groups)
+            $logical_groups = array($name);
+        else if (!is_array($logical_groups))
+            throw new \InvalidArgumentException('Argument 3 expected to be null or array, '.gettype($logical_groups).' seen.');
 
         if (!is_bool($minify))
             throw new \InvalidArgumentException('Argument 4 expected to be boolean, '.gettype($minify).' seen.');
@@ -204,7 +204,7 @@ class asset implements \iasset, \SplSubject
             throw new \InvalidArgumentException('Argument 5 expected to be null or array of objects implementing \\SplObserver.');
 
         /** @var \asset $asset */
-        $asset = new static($realpath, $name, array_unique($groups), $minify, $observers);
+        $asset = new static($realpath, $name, array_unique($logical_groups), $minify, $observers);
 
         $asset->initialize();
 
@@ -238,8 +238,8 @@ class asset implements \iasset, \SplSubject
             case 'type':
                 return $this->_type;
 
-            case 'groups':
-                return $this->_groups;
+            case 'logical_groups':
+                return $this->_logical_groups;
 
             case 'minify':
                 return $this->_minify;
@@ -350,20 +350,20 @@ class asset implements \iasset, \SplSubject
      * @param string $group
      * @return bool
      */
-    public function in_group($group)
+    public function in_logical_group($group)
     {
-        return in_array($group, $this->_groups, true);
+        return in_array($group, $this->_logical_groups, true);
     }
 
     /**
      * @param string $group
      * @return void
      */
-    public function add_to_group($group)
+    public function add_to_logical_group($group)
     {
-        if (!in_array($group, $this->_groups, true))
+        if (!in_array($group, $this->_logical_groups, true))
         {
-            $this->_groups[] = $group;
+            $this->_logical_groups[] = $group;
             $this->_notify_status = ASSET_NOTIFY::GROUP_ADDED;
             $this->notify();
         }
@@ -373,9 +373,9 @@ class asset implements \iasset, \SplSubject
      * @param array $groups
      * @return void
      */
-    public function add_to_groups(array $groups)
+    public function add_to_logical_groups(array $groups)
     {
-        $this->_groups = $this->_groups + $groups;
+        $this->_logical_groups = $this->_logical_groups + $groups;
 
         $this->_notify_status = ASSET_NOTIFY::GROUP_ADDED;
         $this->notify();
@@ -385,12 +385,12 @@ class asset implements \iasset, \SplSubject
      * @param string $group
      * @return void
      */
-    public function remove_from_group($group)
+    public function remove_from_logical_group($group)
     {
-        $idx = array_search($group, $this->_groups, true);
+        $idx = array_search($group, $this->_logical_groups, true);
         if ($idx !== false)
         {
-            unset($this->_groups[$idx]);
+            unset($this->_logical_groups[$idx]);
 
             $this->_notify_status = ASSET_NOTIFY::GROUP_REMOVED;
             $this->notify();
@@ -401,9 +401,9 @@ class asset implements \iasset, \SplSubject
      * @param array $groups
      * @return void
      */
-    public function remove_from_groups(array $groups)
+    public function remove_from_logical_groups(array $groups)
     {
-        $this->_groups = array_diff($this->_groups, $groups);
+        $this->_logical_groups = array_diff($this->_logical_groups, $groups);
 
         $this->_notify_status = ASSET_NOTIFY::GROUP_REMOVED;
         $this->notify();
@@ -639,7 +639,7 @@ class asset_manager implements \SplObserver
      */
     public function load_asset($filename, $groups = null, $minify = true)
     {
-        \asset::asset_with_file_and_groups_and_minify_and_observers($this->_asset_dir_full_path.$filename, $groups, $minify, array($this));
+        \asset::asset_with_file_and_logical_groups_and_minify_and_observers($this->_asset_dir_full_path.$filename, $groups, $minify, array($this));
     }
 
     /**
@@ -683,12 +683,12 @@ class asset_manager implements \SplObserver
                 case ASSET_NOTIFY::INITIALIZED:
                     $this->assets[$subject->name] = $subject;
                 case ASSET_NOTIFY::GROUP_ADDED:
-                    $groups = $subject->groups;
-                    $this->_asset_group_map[$subject->name] = $groups;
+                    $logical_groups = $subject->logical_groups;
+                    $this->_asset_group_map[$subject->name] = $logical_groups;
 
-                    for($i = 0, $count = count($groups); $i < $count; $i++)
+                    for($i = 0, $count = count($logical_groups); $i < $count; $i++)
                     {
-                        $group = $groups[$i];
+                        $group = $logical_groups[$i];
                         if (!isset($this->_group_asset_map[$group]))
                             $this->_group_asset_map[$group] = array();
 
