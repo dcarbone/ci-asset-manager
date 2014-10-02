@@ -37,6 +37,17 @@ class Welcome extends MY_Controller {
         $this->load->view('queue_view');
         $this->load->view('footer');
     }
+
+    public function group_demo()
+    {
+        $this->asset_manager
+            ->add_asset_to_output_queue('js/jquery-1.11.1.min.js', true)
+            ->add_asset_to_output_queue('css/basic.css', true);
+
+        $this->load->view('group_header');
+        $this->load->view('group_view');
+        $this->load->view('footer');
+    }
 }
 
 /* End of file welcome.php */

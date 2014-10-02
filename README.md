@@ -33,11 +33,12 @@ library initialization.
 
 ## Configuration
 
-In an attempt to keep the amount of configuration to a minimum, there are currently on 2 different config params that
+In an attempt to keep the amount of configuration to a minimum there are currently only a few config params that
 this library looks for:
 
 - **asset_dir_relative_path**
 - **minify**
+- **logical_groups**
 
 For example:
 
@@ -45,7 +46,14 @@ For example:
 $config['asset_manager'] = array(
 
     'asset_dir_relative_path' => 'assets',
-    'minify' => true,
+
+    'logical_groups' => array(
+        'noty' => array(
+            'js/noty/packaged/jquery.noty.packaged.min.js',
+            'js/noty/themes/default.js',
+            'js/noty/layouts/*.js',
+        ),
+    ),
 
 );
 ```
@@ -55,6 +63,13 @@ This value must be a subdirectory of your CI application's root path, determined
 
 ### minify
 This value must be boolean, and allows you to globally disable / enable minification of assets.
+
+### logical_groups
+These values represent logical groupings of your assets.  They are not bound by any physical limitations and can contain
+both stylesheet and javascript assets.
+
+A single asset may belong to many groups, but be careful when doing this.  I currently do not check for duplicate asset
+output requests, so you may very well end up including the same asset multiple times.
 
 ## Initialization
 

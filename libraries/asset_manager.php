@@ -486,6 +486,7 @@ class asset implements \iasset, \SplSubject
  * @property string asset_dir_relative_path
  * @property string asset_dir_full_path
  * @property string asset_dir_uri
+ * @property array logical_groups
  * @property boolean minify
  */
 class asset_manager implements \SplObserver
@@ -506,10 +507,7 @@ class asset_manager implements \SplObserver
     protected $_minify = true;
 
     /** @var array */
-    protected  $_asset_group_map = array();
-
-    /** @var array */
-    protected $_group_asset_map = array();
+    protected $_logical_groups = array();
 
     /** @var array */
     private $_queued_assets = array();
@@ -518,7 +516,8 @@ class asset_manager implements \SplObserver
      * Constructor
      *
      * @param array $config
-     * @throws RuntimeException
+     * @throws \RuntimeException
+     * @throws \InvalidArgumentException
      */
     public function __construct($config = array())
     {
@@ -593,6 +592,19 @@ class asset_manager implements \SplObserver
             $this->_minify = ENVIRONMENT !== 'development';
 
         log_message('debug', 'ci-asset-manager - Global minify value set to "'.($this->_minify ? 'TRUE' : 'FALSE').'".');
+
+        if (isset($config['logical_groups']))
+        {
+            if (!is_array($config['logical_groups']))
+            {
+                log_message(
+                    'error',
+                    'ci-asset-manager - "logical_groups" config parameter MUST be array, '.gettype($config['logical_groups']).' seen.');
+                throw new \InvalidArgumentException('"logical_groups" config parameter MUST be array, '.gettype($config['logical_groups']).' seen.');
+            }
+
+            array_walk($config['logical_groups'], array($this, 'define_logical_asset_group'));
+        }
     }
 
     /**
@@ -613,12 +625,34 @@ class asset_manager implements \SplObserver
             case 'asset_dir_uri':
                 return $this->_asset_dir_uri;
 
+            case 'logical_groups':
+                return $this->_logical_groups;
+
             case 'minify':
                 return $this->_minify;
 
             default:
                 throw new \OutOfBoundsException('Object does not contain public property with name "'.$param.'".');
         }
+    }
+
+    /**
+     * @param array $asset_files
+     * @param string $group_name
+     * @throws InvalidArgumentException
+     * @return \asset_manager
+     */
+    public function define_logical_asset_group($asset_files, $group_name)
+    {
+        if (!is_array($asset_files))
+            throw new \InvalidArgumentException('Argument 2 expected to be array, '.gettype($asset_files).' seen.');
+
+        if (isset($this->_logical_groups[$group_name]))
+            $this->_logical_groups[$group_name] = $this->_logical_groups[$group_name] + $asset_files;
+        else
+            $this->_logical_groups[$group_name] = $asset_files;
+
+        return $this;
     }
 
     /**
@@ -630,7 +664,7 @@ class asset_manager implements \SplObserver
         $file = \asset::clean_asset_filename($file);
 
         if (!isset($this->assets[$file]))
-            $this->load_asset($file);
+            $this->initialize_asset($file);
 
         return $this->assets[$file];
     }
@@ -641,12 +675,16 @@ class asset_manager implements \SplObserver
      * @param bool $minify
      * @return \asset_manager
      */
-    public function load_asset($file, $groups = null, $minify = null)
+    public function initialize_asset($file, $groups = null, $minify = null)
     {
         if (null === $minify)
             $minify = $this->_minify;
 
-        \asset::asset_with_file_and_logical_groups_and_minify_and_observers($this->_asset_dir_full_path.$file, $groups, $minify, array($this));
+        \asset::asset_with_file_and_logical_groups_and_minify_and_observers(
+            $this->_asset_dir_full_path.$file,
+            $groups,
+            $minify,
+            array($this));
 
         return $this;
     }
@@ -697,6 +735,9 @@ class asset_manager implements \SplObserver
             }
             else
             {
+                log_message(
+                    'error',
+                    'ci-asset-manager - Invalid asset queue array seen.  Format must be array($file) or array($file => array("force_minify" => bool, "attributes" => array())).');
                 throw new \InvalidArgumentException('Invalid asset queue array seen.  Format must be array($file) or array($file => array("force_minify" => bool, "attributes" => array())).');
             }
         }
@@ -736,6 +777,31 @@ class asset_manager implements \SplObserver
     }
 
     /**
+     * @param string $logical_group
+     * @return string
+     * @throws \RuntimeException
+     */
+    public function generate_logical_group_asset_output($logical_group)
+    {
+        if (!isset($this->logical_groups[$logical_group]))
+        {
+            log_message(
+                'error',
+                'ci-asset-manager - Group "'.$logical_group.'" does not exist.');
+            throw new \RuntimeException('Group "'.$logical_group.'" does not exist.');
+        }
+
+        $output = '';
+
+        for ($i = 0, $count = count($this->_logical_groups[$logical_group]); $i < $count; $i++)
+        {
+            $output .= $this->generate_asset_tag($this->_logical_groups[$logical_group][$i], null, null);
+        }
+
+        return $output;
+    }
+
+    /**
      * @param string $file
      * @param bool $force_minify
      * @param array $attributes
@@ -743,6 +809,20 @@ class asset_manager implements \SplObserver
      */
     public function generate_asset_tag($file, $force_minify = null, $attributes = array())
     {
+        if (strpos($file, '*') !== false)
+        {
+            $files = $this->parse_glob_string($file);
+
+            $output = '';
+
+            for ($i = 0, $count = count($files); $i < $count; $i++)
+            {
+                $output .= $this->generate_asset_tag($files[$i], $force_minify, $attributes);
+            }
+
+            return $output;
+        }
+
         $asset = $this->get_asset($file);
 
         if (!is_bool($force_minify))
@@ -758,6 +838,27 @@ class asset_manager implements \SplObserver
 
             default: return '';
         }
+    }
+
+    /**
+     * @param string $glob_string
+     * @return array
+     */
+    protected function parse_glob_string($glob_string)
+    {
+        $glob = glob($this->_asset_dir_full_path.$glob_string, GLOB_NOSORT | GLOB_BRACE);
+
+        $files = array();
+
+        for ($i = 0, $count = count($glob); $i < $count; $i++)
+        {
+            if (substr($glob[$i], -1) === '.')
+                continue;
+
+            $files[] = str_replace($this->_asset_dir_full_path, '', $glob[$i]);
+        }
+
+        return $files;
     }
 
     /**
@@ -778,15 +879,13 @@ class asset_manager implements \SplObserver
                     $this->assets[$subject->name] = $subject;
                 case ASSET_NOTIFY::GROUP_ADDED:
                     $logical_groups = $subject->logical_groups;
-                    $this->_asset_group_map[$subject->name] = $logical_groups;
-
                     for($i = 0, $count = count($logical_groups); $i < $count; $i++)
                     {
                         $group = $logical_groups[$i];
-                        if (!isset($this->_group_asset_map[$group]))
-                            $this->_group_asset_map[$group] = array();
+                        if (!isset($this->_logical_groups[$group]))
+                            $this->_logical_groups[$group] = array();
 
-                        $this->_group_asset_map[$group] = $this->_group_asset_map[$group] + array($subject->name);
+                        $this->_logical_groups[$group] = $this->_logical_groups[$group] + array($subject->name);
                     }
                     break;
 
