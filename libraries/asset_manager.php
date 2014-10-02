@@ -804,6 +804,15 @@ class asset_manager implements \SplObserver
     }
 
     /**
+     * Clear out the list of assets to be output
+     */
+    public function clear_output_queue()
+    {
+        $this->_queued_assets = array();
+        return $this;
+    }
+
+    /**
      * @param string $logical_group
      * @param bool $force_minify
      * @throws RuntimeException
