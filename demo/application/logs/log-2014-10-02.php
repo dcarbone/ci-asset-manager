@@ -1246,3 +1246,57 @@ DEBUG - 2014-10-02 16:20:45 --> ci-asset-manager - Relative asset dir path set t
 DEBUG - 2014-10-02 16:20:45 --> ci-asset-manager - Full asset dir path set to "C:\apache\htdocs\libraries\dcarbone\ci-asset-manager\trunk\demo\assets\".
 DEBUG - 2014-10-02 16:20:45 --> ci-asset-manager - Asset URI set to "http://ric-d-2bstt12:88/libraries/dcarbone/ci-asset-manager/trunk/demo/assets/".
 DEBUG - 2014-10-02 16:20:45 --> ci-asset-manager - Global minify value set to "FALSE".
+DEBUG - 2014-10-02 18:17:11 --> Config Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Hooks Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Utf8 Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> UTF-8 Support Enabled
+DEBUG - 2014-10-02 18:17:11 --> URI Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Router Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> No URI present. Default controller set.
+DEBUG - 2014-10-02 18:17:11 --> Output Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Security Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Input Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Global POST and COOKIE data sanitized
+DEBUG - 2014-10-02 18:17:11 --> Language Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Loader Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Helper loaded: url_helper
+DEBUG - 2014-10-02 18:17:11 --> Controller Class Initialized
+DEBUG - 2014-10-02 18:17:11 --> Config file loaded: C:\apache\htdocs\libraries\dcarbone\ci-asset-manager\trunk/config/asset_manager.php
+DEBUG - 2014-10-02 18:17:11 --> ci-asset-manager - Config loaded from array param.
+DEBUG - 2014-10-02 18:17:11 --> ci-asset-manager - Attempting to use "asset_dir_relative_path" from config array.
+DEBUG - 2014-10-02 18:17:11 --> ci-asset-manager - Relative asset dir path set to "assets\".
+DEBUG - 2014-10-02 18:17:11 --> ci-asset-manager - Full asset dir path set to "C:\apache\htdocs\libraries\dcarbone\ci-asset-manager\trunk\demo\assets\".
+DEBUG - 2014-10-02 18:17:11 --> ci-asset-manager - Asset URI set to "http://ric-d-2bstt12:88/libraries/dcarbone/ci-asset-manager/trunk/demo/assets/".
+DEBUG - 2014-10-02 18:17:11 --> ci-asset-manager - Global minify value set to "FALSE".
+DEBUG - 2014-10-02 18:17:11 --> File loaded: application/views/header.php
+DEBUG - 2014-10-02 18:17:11 --> File loaded: application/views/welcome_message.php
+DEBUG - 2014-10-02 18:17:11 --> File loaded: application/views/footer.php
+DEBUG - 2014-10-02 18:17:11 --> Final output sent to browser
+DEBUG - 2014-10-02 18:17:11 --> Total execution time: 0.1267
+DEBUG - 2014-10-02 18:17:51 --> Config Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Hooks Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Utf8 Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> UTF-8 Support Enabled
+DEBUG - 2014-10-02 18:17:51 --> URI Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Router Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> No URI present. Default controller set.
+DEBUG - 2014-10-02 18:17:51 --> Output Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Security Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Input Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Global POST and COOKIE data sanitized
+DEBUG - 2014-10-02 18:17:51 --> Language Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Loader Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Helper loaded: url_helper
+DEBUG - 2014-10-02 18:17:51 --> Controller Class Initialized
+DEBUG - 2014-10-02 18:17:51 --> Config file loaded: C:\apache\htdocs\libraries\dcarbone\ci-asset-manager\trunk/config/asset_manager.php
+DEBUG - 2014-10-02 18:17:51 --> ci-asset-manager - Config loaded from array param.
+DEBUG - 2014-10-02 18:17:51 --> ci-asset-manager - Attempting to use "asset_dir_relative_path" from config array.
+DEBUG - 2014-10-02 18:17:51 --> ci-asset-manager - Relative asset dir path set to "assets\".
+DEBUG - 2014-10-02 18:17:51 --> ci-asset-manager - Full asset dir path set to "C:\apache\htdocs\libraries\dcarbone\ci-asset-manager\trunk\demo\assets\".
+DEBUG - 2014-10-02 18:17:51 --> ci-asset-manager - Asset URI set to "http://ric-d-2bstt12:88/libraries/dcarbone/ci-asset-manager/trunk/demo/assets/".
+DEBUG - 2014-10-02 18:17:51 --> ci-asset-manager - Global minify value set to "FALSE".
+DEBUG - 2014-10-02 18:17:51 --> File loaded: application/views/header.php
+DEBUG - 2014-10-02 18:17:51 --> File loaded: application/views/welcome_message.php
+DEBUG - 2014-10-02 18:17:51 --> File loaded: application/views/footer.php
+DEBUG - 2014-10-02 18:17:51 --> Final output sent to browser
+DEBUG - 2014-10-02 18:17:51 --> Total execution time: 0.1254

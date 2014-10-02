@@ -511,6 +511,9 @@ class asset_manager implements \SplObserver
     /** @var array */
     protected $_group_asset_map = array();
 
+    /** @var array */
+    private $_queued_assets = array();
+
     /**
      * Constructor
      *
@@ -633,13 +636,100 @@ class asset_manager implements \SplObserver
     }
 
     /**
-     * @param $filename
-     * @param null $groups
+     * @param string $file
+     * @param array $groups
      * @param bool $minify
+     * @return \asset_manager
      */
-    public function load_asset($filename, $groups = null, $minify = true)
+    public function load_asset($file, $groups = null, $minify = null)
     {
-        \asset::asset_with_file_and_logical_groups_and_minify_and_observers($this->_asset_dir_full_path.$filename, $groups, $minify, array($this));
+        if (null === $minify)
+            $minify = $this->_minify;
+
+        \asset::asset_with_file_and_logical_groups_and_minify_and_observers($this->_asset_dir_full_path.$file, $groups, $minify, array($this));
+
+        return $this;
+    }
+
+    /**
+     * @param string $file
+     * @param bool $force_minify
+     * @param array $attributes
+     * @return $this
+     */
+    public function add_asset_to_output_queue($file, $force_minify = null, $attributes = array())
+    {
+        $this->_queued_assets[$file] = array(
+            'force_minify' => $force_minify,
+            'attributes' => $attributes,
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param array $files
+     * @throws InvalidArgumentException
+     * @return \asset_manager
+     */
+    public function add_assets_to_output_queue($files)
+    {
+        if (!is_array($files))
+            throw new \InvalidArgumentException('Argument 1 expected to be array, '.gettype($files).' seen.');
+
+        foreach($files as $k=>$v)
+        {
+            if (is_int($k))
+            {
+                $this->_queued_assets[$v] = array(
+                    'force_minify' => null,
+                    'attributes' => array(),
+                );
+            }
+            else if (is_string($k) && is_array($v))
+            {
+                if (!isset($v['force_minify']))
+                    $v['force_minify'] = $this->_minify;
+                if (!isset($v['attributes']))
+                    $v['attributes'] = array();
+
+                $this->_queued_assets[$k] = $v;
+            }
+            else
+            {
+                throw new \InvalidArgumentException('Invalid asset queue array seen.  Format must be array($file) or array($file => array("force_minify" => bool, "attributes" => array())).');
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param string $file
+     * @param bool $force_minify
+     * @param array $attributes
+     * @return \asset_manager
+     */
+    public function prepend_asset_to_output_queue($file, $force_minify = null, $attributes = array())
+    {
+        $this->_queued_assets = array($file => array('force_minify' => $force_minify, 'attributes' => $attributes)) + $this->_queued_assets;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function generate_queue_asset_output()
+    {
+        $output = '';
+
+        while(($key = key($this->_queued_assets)) !== null && ($current = current($this->_queued_assets)) !== false)
+        {
+            $output .= $this->generate_asset_tag($key, $current['force_minify'], $current['attributes']);
+        }
+
+        return $output;
     }
 
     /**
@@ -776,8 +866,8 @@ abstract class asset_output_generator
                     'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
         }
 
-        return '<link href="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_name).
-            'rel="stylesheet" type="text/css"'.$attribute_string.'" />'."\n";
+        return '<link href="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_name).'" '.
+            'rel="stylesheet" type="text/css"'.$attribute_string.' />'."\n";
     }
 
     /**
