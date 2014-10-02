@@ -4,8 +4,7 @@
     <meta charset="utf-8">
     <title>AssetManager Demo Application</title>
     <?php
-    echo $this->asset_manager->generate_asset_tag('js/jquery-1.11.1.min.js', true);
-    echo $this->asset_manager->generate_asset_tag('css/basic.css', true);
+    echo $this->asset_manager->generate_queue_asset_output();
     ?>
 </head>
 <body>
@@ -20,7 +19,7 @@
                 <a href="<?php echo base_url(); ?>">Home</a>
             </li>
             <li>
-                <a href="<?php echo site_url('welcome/queue_demo'); ?>">Queue Demo</a>
+                <a href=""<?php echo base_url('welcome/queue_demo'); ?>">Queue Demo</a>
             </li>
         </ul>
     </div>

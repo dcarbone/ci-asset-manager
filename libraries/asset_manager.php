@@ -727,7 +727,10 @@ class asset_manager implements \SplObserver
         while(($key = key($this->_queued_assets)) !== null && ($current = current($this->_queued_assets)) !== false)
         {
             $output .= $this->generate_asset_tag($key, $current['force_minify'], $current['attributes']);
+            next($this->_queued_assets);
         }
+
+        reset($this->_queued_assets);
 
         return $output;
     }
@@ -900,6 +903,7 @@ abstract class asset_output_generator
         while (($key = key($attributes)) !== null && ($value = current($attributes)) !== false)
         {
             $string .= " {$key}='{$value}'";
+            next($attributes);
         }
 
         return $string;
