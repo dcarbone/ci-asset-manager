@@ -4,6 +4,10 @@ $config['asset_manager'] = array(
 
     'asset_dir_relative_path' => 'assets',
 
+    'asset_cache_dir_relative_path' => 'assets/cache',
+
+    'minify' => true,
+
     'logical_groups' => array(
         'noty' => array(
             'js/noty/packaged/jquery.noty.packaged.min.js',

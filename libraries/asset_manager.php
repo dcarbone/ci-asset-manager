@@ -98,6 +98,9 @@ class asset implements \iasset, \SplSubject
     /** @var string */
     public static $_asset_dir_full_path;
 
+    /** @var string */
+    public static $_asset_cache_dir_full_path;
+
     /** @var int */
     protected $_notify_status;
 
@@ -302,6 +305,7 @@ class asset implements \iasset, \SplSubject
         if ($this->_source_is_minified)
         {
             $this->_minify_name = $this->_name;
+            $this->_minify_file = $this->_file;
             $this->_minify_last_modified = \DateTime::createFromFormat('U', filemtime($this->_file));
         }
         else
@@ -322,15 +326,15 @@ class asset implements \iasset, \SplSubject
         switch($this->_type)
         {
             case 'javascript':
-                $this->_minify_name = str_replace('.js', '.min.js', $this->_name);
-                $this->_minify_file = str_replace('.js', '.min.js', $this->_file);
+                $this->_minify_name = sha1($this->_name).'.min.js';
                 break;
 
             case 'stylesheet':
-                $this->_minify_name = str_replace('.css', '.min.css', $this->_name);
-                $this->_minify_file = str_replace('.css', '.min.css', $this->_file);
+                $this->_minify_name = sha1($this->_name).'.min.css';
                 break;
         }
+
+        $this->_minify_file = static::$_asset_cache_dir_full_path.$this->_minify_name;
     }
 
     /**
@@ -486,6 +490,8 @@ class asset implements \iasset, \SplSubject
  * @property string asset_dir_relative_path
  * @property string asset_dir_full_path
  * @property string asset_dir_uri
+ * @property string asset_cache_dir_relative_path
+ * @property string asset_cache_dir_full_path
  * @property array logical_groups
  * @property boolean minify
  */
@@ -499,6 +505,12 @@ class asset_manager implements \SplObserver
 
     /** @var string */
     protected $_asset_dir_full_path;
+
+    /** @var string */
+    protected $_asset_cache_dir_relative_path;
+
+    /** @var string */
+    protected $_asset_cache_dir_full_path;
 
     /** @var string */
     protected $_asset_dir_uri;
@@ -562,7 +574,7 @@ class asset_manager implements \SplObserver
                 'ci-asset-manager - "asset_dir_relative_path" config parameter not found, attempting to use "'.FCPATH.'assets".');
 
             $path = realpath(FCPATH.'assets');
-            if ($path !== false)
+            if ($path)
             {
                 $this->_asset_dir_full_path = $path.DIRECTORY_SEPARATOR;
                 $this->_asset_dir_relative_path = 'assets'.DIRECTORY_SEPARATOR;
@@ -577,14 +589,67 @@ class asset_manager implements \SplObserver
             throw new \RuntimeException('Specified asset path "'.$this->_asset_dir_full_path.'" is not writable.');
         }
 
-        $this->_asset_dir_uri = rtrim(base_url(str_replace(DIRECTORY_SEPARATOR, '/', $this->_asset_dir_relative_path), "/")).'/';
+        $this->_asset_dir_uri = rtrim(base_url(str_replace(DIRECTORY_SEPARATOR, '/', $this->_asset_dir_relative_path), " \t\n\r\0\x0B/")).'/';
 
         \asset::$_asset_dir_full_path = $this->_asset_dir_full_path;
-        \asset_output_generator::$_asset_dir_uri = $this->_asset_dir_uri;
 
         log_message('debug', 'ci-asset-manager - Relative asset dir path set to "'.$this->_asset_dir_relative_path.'".');
         log_message('debug', 'ci-asset-manager - Full asset dir path set to "'.$this->_asset_dir_full_path.'".');
         log_message('debug', 'ci-asset-manager - Asset URI set to "'.$this->_asset_dir_uri.'".');
+
+        if (isset($config['asset_cache_dir_relative_path']))
+        {
+            log_message('debug', 'ci-asset-manager - Attempting to use "asset_cache_dir_relative_path" from config array.');
+
+            $path = realpath(FCPATH.$config['asset_cache_dir_relative_path']);
+            if ($path)
+            {
+                $this->_asset_cache_dir_full_path = $path.DIRECTORY_SEPARATOR;
+                $this->_asset_cache_dir_relative_path = trim($config['asset_cache_dir_relative_path'], "/\\").DIRECTORY_SEPARATOR;
+            }
+            else
+            {
+                log_message(
+                    'error',
+                    'ci-asset-manager - Could not find specified directory ("'.$config['asset_cache_dir_relative_path'].'") relative to FCPATH constant.');
+                throw new \RuntimeException('Could not find specified directory ("'.$config['asset_cache_dir_relative_path'].'") relative to FCPATH constant.');
+            }
+        }
+        else
+        {
+            log_message(
+                'debug',
+                'ci-asset-manager - "asset_cache_dir_relative_path" config parameter not found, attempting to use "'.
+                $this->_asset_dir_relative_path.'cache'.DIRECTORY_SEPARATOR.'".');
+
+            $path = realpath($this->_asset_dir_full_path.'cache');
+            if ($path)
+            {
+                $this->_asset_cache_dir_full_path = $path.DIRECTORY_SEPARATOR;
+                $this->_asset_cache_dir_relative_path = $this->_asset_dir_relative_path.'cache'.DIRECTORY_SEPARATOR;
+            }
+            else if ((bool)@mkdir($this->_asset_dir_full_path.'cache'))
+            {
+                log_message(
+                    'debug',
+                    'ci-asset-manager - Successfully created cache directory under "'.$this->_asset_dir_relative_path.'".');
+
+                $this->_asset_cache_dir_full_path = $this->_asset_dir_full_path.'cache'.DIRECTORY_SEPARATOR;
+                $this->_asset_cache_dir_relative_path = $this->_asset_dir_relative_path.'cache'.DIRECTORY_SEPARATOR;
+            }
+            else
+            {
+                log_message(
+                    'error',
+                    'ci-asset-manager - Was not able to create cache directory under "'.$this->_asset_dir_relative_path.'".');
+                throw new \RuntimeException('Was not able to create cache directory under "'.$this->_asset_dir_relative_path.'".');
+            }
+        }
+
+        \asset::$_asset_cache_dir_full_path = $this->_asset_cache_dir_full_path;
+
+        log_message('debug', 'ci-asset-manager - Full asset cache dir path set to "'.$this->_asset_cache_dir_full_path.'".');
+        log_message('debug', 'ci-asset-manager - Relative asset cache dir path set to "'.$this->_asset_cache_dir_relative_path.'".');
 
         if (isset($config['minify']))
             $this->_minify = (bool)$config['minify'];
@@ -868,10 +933,10 @@ class asset_manager implements \SplObserver
         switch($asset->type)
         {
             case 'javascript':
-                return \asset_output_generator::output_javascript_asset($asset, $force_minify, $attributes);
+                return $this->output_javascript_asset($asset, $force_minify, $attributes);
 
             case 'stylesheet':
-                return \asset_output_generator::output_stylesheet_asset($asset, $force_minify, $attributes);
+                return $this->output_stylesheet_asset($asset, $force_minify, $attributes);
 
             default: return '';
         }
@@ -896,6 +961,157 @@ class asset_manager implements \SplObserver
         }
 
         return $files;
+    }
+
+    /**
+     * @param asset $asset
+     * @param bool $minify
+     * @param array $attributes
+     * @return string
+     */
+    public function output_javascript_asset(\asset $asset, $minify, $attributes)
+    {
+        $attribute_string = self::generate_asset_attribute_string($attributes);
+
+        if ($minify)
+        {
+            if ($asset->source_is_minified || $this->generate_minified_javascript_asset($asset))
+            {
+                $include_file = str_replace(
+                    array(
+                        $this->_asset_dir_full_path,
+                        DIRECTORY_SEPARATOR,
+                    ),
+                    array(
+                        $this->_asset_dir_uri,
+                        '/',
+                    ),
+                    $asset->minify_file);
+            }
+            else
+                log_message(
+                    'error',
+                    'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
+        }
+
+        if (!isset($include_file))
+        {
+            $include_file = str_replace(
+                array(
+                    $this->_asset_dir_full_path,
+                    DIRECTORY_SEPARATOR,
+                ),
+                array(
+                    $this->_asset_dir_uri,
+                    '/',
+                ),
+                $asset->file);
+        }
+
+        return '<script src="'.$include_file.
+        '" type="text/javascript"'.$attribute_string.'></script>'."\n";
+    }
+
+    /**
+     * @param asset $asset
+     * @return bool
+     */
+    protected function generate_minified_javascript_asset(\asset $asset)
+    {
+        $source_modified = $asset->source_last_modified;
+        $minify_modified = $asset->minify_last_modified;
+
+        $ok = true;
+
+        if (null === $minify_modified || $source_modified > $minify_modified)
+            $ok = (bool)@file_put_contents($asset->minify_file, \JShrink\Minifier::minify(file_get_contents($asset->file)));
+
+        return $ok;
+    }
+
+    /**
+     * @param \asset $asset
+     * @param bool $minify
+     * @param array $attributes
+     * @return string
+     */
+    public function output_stylesheet_asset(\asset $asset, $minify, $attributes)
+    {
+        $attribute_string = $this->generate_asset_attribute_string($attributes);
+
+        if ($minify)
+        {
+            if ($asset->source_is_minified || $this->generate_minified_stylesheet_asset($asset))
+            {
+                $include_file = str_replace(
+                    array(
+                        $this->_asset_dir_full_path,
+                        DIRECTORY_SEPARATOR,
+                    ),
+                    array(
+                        $this->_asset_dir_uri,
+                        '/',
+                    ),
+                    $asset->minify_file);
+            }
+            else
+                log_message(
+                    'error',
+                    'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
+        }
+
+        if (!isset($include_file))
+        {
+            $include_file = str_replace(
+                array(
+                    $this->_asset_dir_full_path,
+                    DIRECTORY_SEPARATOR,
+                ),
+                array(
+                    $this->_asset_dir_uri,
+                    '/',
+                ),
+                $asset->file);
+        }
+
+        return '<link href="'.$include_file.'" '.
+        'rel="stylesheet" type="text/css"'.$attribute_string.' />'."\n";
+    }
+
+    /**
+     * @param \asset $asset
+     * @return bool
+     */
+    protected function generate_minified_stylesheet_asset(\asset $asset)
+    {
+        $source_modified = $asset->source_last_modified;
+        $minify_modified = $asset->minify_last_modified;
+
+        $ok = true;
+
+        if (null === $minify_modified || $source_modified > $minify_modified)
+            $ok = (bool)@file_put_contents($asset->minify_file, \CssMin::minify(file_get_contents($asset->file)));
+
+        return $ok;
+    }
+
+    /**
+     * @param array $attributes
+     * @return string
+     */
+    protected function generate_asset_attribute_string($attributes)
+    {
+        if (!is_array($attributes))
+            return '';
+
+        $string = '';
+        while (($key = key($attributes)) !== null && ($value = current($attributes)) !== false)
+        {
+            $string .= " {$key}='{$value}'";
+            next($attributes);
+        }
+
+        return $string;
     }
 
     /**
@@ -931,117 +1147,5 @@ class asset_manager implements \SplObserver
                     break;
             }
         }
-    }
-}
-
-/**
- * Class asset_output_generator
- */
-abstract class asset_output_generator
-{
-    /** @var string */
-    public static $_asset_dir_uri;
-
-    /**
-     * @param asset $asset
-     * @param bool $minify
-     * @param array $attributes
-     * @return string
-     */
-    public static function output_javascript_asset(\asset $asset, $minify, $attributes)
-    {
-        $include_filename = $asset->name;
-        $attribute_string = self::generate_asset_attribute_string($attributes);
-
-        if ($minify)
-        {
-            if ($asset->source_is_minified || self::generate_minified_javascript_asset($asset))
-                $include_filename = $asset->minify_name;
-            else
-                log_message(
-                    'error',
-                    'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
-        }
-
-        return '<script src="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_filename).
-            '" type="text/javascript"'.$attribute_string.'></script>'."\n";
-    }
-
-    /**
-     * @param asset $asset
-     * @return bool
-     */
-    protected static function generate_minified_javascript_asset(\asset $asset)
-    {
-        $source_modified = $asset->source_last_modified;
-        $minify_modified = $asset->minify_last_modified;
-
-        $ok = true;
-
-        if (null === $minify_modified || $source_modified > $minify_modified)
-            $ok = (bool)@file_put_contents($asset->minify_file, \JShrink\Minifier::minify(file_get_contents($asset->file)));
-
-        return $ok;
-    }
-
-    /**
-     * @param \asset $asset
-     * @param bool $minify
-     * @param array $attributes
-     * @return string
-     */
-    public static function output_stylesheet_asset(\asset $asset, $minify, $attributes)
-    {
-        $include_name = $asset->name;
-        $attribute_string = self::generate_asset_attribute_string($attributes);
-
-        if ($minify)
-        {
-            if ($asset->source_is_minified || self::generate_minified_stylesheet_asset($asset))
-                $include_name = $asset->minify_name;
-            else
-                log_message(
-                    'error',
-                    'ci-asset-manager - Could not create minified version of asset "'.$asset->name.'".  Will use non-minified version.');
-        }
-
-        return '<link href="'.self::$_asset_dir_uri.str_replace(DIRECTORY_SEPARATOR, '/', $include_name).'" '.
-            'rel="stylesheet" type="text/css"'.$attribute_string.' />'."\n";
-    }
-
-    /**
-     * @param \asset $asset
-     * @return bool
-     */
-    protected static function generate_minified_stylesheet_asset(\asset $asset)
-    {
-        $source_modified = $asset->source_last_modified;
-        $minify_modified = $asset->minify_last_modified;
-
-        $ok = true;
-
-        if (null === $minify_modified || $source_modified > $minify_modified)
-           $ok = (bool)@file_put_contents($asset->minify_file, \CssMin::minify(file_get_contents($asset->file)));
-
-        return $ok;
-    }
-
-    /**
-     * @param array $attributes
-     * @return string
-     */
-    protected static function generate_asset_attribute_string($attributes)
-    {
-        if (!is_array($attributes))
-            return '';
-
-        $string = '';
-        while (($key = key($attributes)) !== null && ($value = current($attributes)) !== false)
-        {
-            $string .= " {$key}='{$value}'";
-            next($attributes);
-        }
-
-        return $string;
     }
 }
