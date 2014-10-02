@@ -647,10 +647,20 @@ class asset_manager implements \SplObserver
         if (!is_array($asset_files))
             throw new \InvalidArgumentException('Argument 2 expected to be array, '.gettype($asset_files).' seen.');
 
+        $real_files = array();
+
+        for($i = 0, $count = count($asset_files); $i < $count; $i++)
+        {
+            if (strpos($asset_files[$i], '*') !== false)
+                $real_files = $real_files + $this->parse_glob_string($asset_files[$i]);
+            else
+                $real_files[] = $asset_files[$i];
+        }
+
         if (isset($this->_logical_groups[$group_name]))
-            $this->_logical_groups[$group_name] = $this->_logical_groups[$group_name] + $asset_files;
+            $this->_logical_groups[$group_name] = $this->_logical_groups[$group_name] + $real_files;
         else
-            $this->_logical_groups[$group_name] = $asset_files;
+            $this->_logical_groups[$group_name] = $real_files;
 
         return $this;
     }
@@ -759,6 +769,23 @@ class asset_manager implements \SplObserver
     }
 
     /**
+     * @param string $logical_group
+     * @throws RuntimeException
+     */
+    public function add_logical_group_to_output_queue($logical_group)
+    {
+        if (!isset($this->_logical_groups[$logical_group]))
+        {
+            log_message(
+                'error',
+                'ci-asset-manager - Could not add logical group "'.$logical_group.'" to output queue as it is not defined.');
+            throw new \RuntimeException('Could not add logical group "'.$logical_group.'" to output queue as it is not defined.');
+        }
+
+        $this->add_assets_to_output_queue($this->_logical_groups[$logical_group]);
+    }
+
+    /**
      * @return string
      */
     public function generate_queue_asset_output()
@@ -778,10 +805,11 @@ class asset_manager implements \SplObserver
 
     /**
      * @param string $logical_group
+     * @param bool $force_minify
+     * @throws RuntimeException
      * @return string
-     * @throws \RuntimeException
      */
-    public function generate_logical_group_asset_output($logical_group)
+    public function generate_logical_group_asset_output($logical_group, $force_minify = null)
     {
         if (!isset($this->logical_groups[$logical_group]))
         {
@@ -795,7 +823,7 @@ class asset_manager implements \SplObserver
 
         for ($i = 0, $count = count($this->_logical_groups[$logical_group]); $i < $count; $i++)
         {
-            $output .= $this->generate_asset_tag($this->_logical_groups[$logical_group][$i], null, null);
+            $output .= $this->generate_asset_tag($this->_logical_groups[$logical_group][$i], $force_minify, null);
         }
 
         return $output;
