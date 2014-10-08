@@ -119,7 +119,7 @@ There are several rules which determine whether an asset will be minified.
     same directory as the source file
     - This detection is not very intelligent yet, and is one of the areas I wish to improve.
     - When an already-minified version is detected, the [filemtime](!http://php.net/manual/en/function.filemtime.php) value
-    of both the source and minify files. If the source is newer, the minified version is re-created.
+    of both the source and minify files is determined. If the source is newer, the minified version is re-created.
 3. Global minify set to ` false `
     - If the "minify" config parameter is defined as ` false `, then no minification will occur unless you explicitly specify
     the second parameter of ` $this->asset_manager->generate_asset_tag() ` to be ` true `.
