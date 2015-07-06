@@ -22,19 +22,15 @@ class Welcome extends MY_Controller {
 	 */
 	public function index()
 	{
-        $this->load->view('header');
-		$this->load->view('view');
+        $this->load->view('header_basic');
+		$this->load->view('view_basic');
         $this->load->view('footer');
 	}
 
-    public function queue_demo()
+    public function multiple()
     {
-        $this->asset_manager
-            ->add_asset_to_output_queue('js/jquery-1.11.1.min.js', true)
-            ->add_asset_to_output_queue('css/basic.css', true);
-
-        $this->load->view('queue_header');
-        $this->load->view('queue_view');
+        $this->load->view('header_multiple');
+        $this->load->view('view_multiple');
         $this->load->view('footer');
     }
 
@@ -44,8 +40,8 @@ class Welcome extends MY_Controller {
             ->add_asset_to_output_queue('js/jquery-1.11.1.min.js', true)
             ->add_asset_to_output_queue('css/basic.css', true);
 
-        $this->load->view('group_header');
-        $this->load->view('group_view');
+        $this->load->view('header_group');
+        $this->load->view('view_group');
         $this->load->view('footer');
     }
 }

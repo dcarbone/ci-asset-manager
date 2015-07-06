@@ -3,139 +3,130 @@ asset_manager
 
 A simple asset management library for the <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a> framework.
 
-## Under development
-I am currently working on a near-complete rewrite of this library, and as such many features present in the older version
-are not yet available.
-
-
-## Libraries this library implements:
-- https://github.com/tedious/JShrink/tree/v1.0.0
-- https://github.com/natxet/CssMin
-
-These dependencies are REQUIRED.  Since CI 2 does not support <a href="https://getcomposer.org/" target="_blank">Composer</a> yet,
-I have included these repos in this one.  I DO NOT claim to own the code for either of those libraries.  They are simply included
-here due to a lack of better CI dependency management.
-
-## Demo app
-I have included a copy of CI 2.2.0 in this repo as a demonstration tool.  To view it, simply navigate to ` /demo ` in any
-browser.  Note: Requires you have the ability to run <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a>
-applications on whatever machine you view it on.
-
 ## Installation
-
-Copy contents of /libraries to /APPPATH.libraries
-Copy contents of /config to /APPPATH.config
-
-## Requirements
-
-This library has been tested with CI 2.2.0 and requires the CodeIgniter URL Helper function set to be loaded prior to
-library initialization.
+Simply drag each file under each directory in this lib to the corresponding directories in your CI 2 application.
 
 ## Configuration
+There are only 3 configuration parameters:
 
-In an attempt to keep the amount of configuration to a minimum there are currently only a few config params that
-this library looks for:
+1. asset_dir_relative_path
+2. javascript_dir_name
+3. stylesheet_dir_name
 
-- **asset_dir_relative_path**
-- **minify**
-- **logical_groups**
+*asset_dir_relative_path*
 
-For example:
+Set this value to the name of the directory you store your assets in, relative to the root of your project.
+So, for instance, if your project looks like this:
 
-```php
-$config['asset_manager'] = array(
+`
+|-- src/
+|   |-- application/
+|   |-- assets/
+|   |   |-- js/
+|   |   |-- css/
+|   |-- system/
+|   |-- index.php
+`
 
-    'asset_dir_relative_path' => 'assets',
+..then you would specify `'assets'` for this value.
 
-    'logical_groups' => array(
-        'noty' => array(
-            'js/noty/packaged/jquery.noty.packaged.min.js',
-            'js/noty/themes/default.js',
-            'js/noty/layouts/*.js',
-        ),
-    ),
+*javascript_dir_name*
 
-);
-```
+This is the name of the directory under the above defined assets directory you store your javascript assets.
+Using the above example, this value would be `'js'`.
 
-### asset_dir_relative_path
-This value must be a subdirectory of your CI application's root path, determined by the value of the ` FCPATH ` constant.
+*stylesheet_dir_name*
 
-### minify
-This value must be boolean, and allows you to globally disable / enable minification of assets.
+This is the name of the directory under the above defined assets directory you store your stylesheet assets.
+Using the above example, this value would be `'css'`.
 
-### logical_groups
-These values represent logical groupings of your assets.  They are not bound by any physical limitations and can contain
-both stylesheet and javascript assets.
-
-A single asset may belong to many groups, but be careful when doing this.  I currently do not check for duplicate asset
-output requests, so you may very well end up including the same asset multiple times.
-
-## Initialization
-
-In your controller, call:
-```php
-$this->load->library('asset_manager', $this->config->load('asset_manager'));
-```
-
-This will create an instance of asset_manager on your controller, accessible through
-```php
-$this->asset_manager->....
-```
+## Loading
+You will either need to manually load up the asset_manager helper and lib, or add them to your CI autoload.php conf file.
 
 ## Usage
+Usage is quite simple.  There are a number of helper functions provided:
 
-For now, the logic is very, very simple.  Simply execute the following:
+*Note*: All examples below will assume the above example dir structure
 
+*Note*: For each of the below functions, inclusion of the filetype extension is optional
+
+### tag Functions
+There are two tag functions:
+1. javascript_tag
+2. stylesheet_tag
+
+Both of these functions accept 2 arguments:
+
+1. Content of tag
+2. HTML Attributes (optional array)
+
+Both return the appropriate HTML as a string.
+
+### include Functions
+There are two include functions:
+1. include_javascript
+2. include_stylesheet
+
+These functions accept multiple different input types.
+
+### Basic
 ```php
-echo $this->asset_manager->generate_asset_tag('js/jquery-1.11.1.min.js');
-echo $this->asset_manager->generate_asset_tag('css/basic.css');
+echo include_stylesheet('basic');
+echo include_javascript('jquery-1.11.1.min');
 ```
 
-...in a view file of your choosing.
+Will result in the following (using the dir structure in the example above):
 
-The first parameter is the path to the asset file relative to the ` asset_dir_relative_path `
-config parameter described below.
+```html
+<link rel="stylesheet" href="http://your-url/assets/css/basic.css" />
+<script type="text/javascript" src="http://your-url/assets/js/jquery-1.11.1.min.js"></script>
+```
 
-The second parameter is a boolean flag that will tell asset manager if you explicitly want this asset to be minified or not.
+### Multiple
+```php
+echo include_javascript('jquery-1.11.1.min', 'my-js-lib');
+```
 
-The third parameter is an array of key=>value attributes that you wish to be added to the output.
+This will result in:
+```html
+<script type="text/javascript" src="http://your-url/assets/js/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="http://your-url/assets/js/my-js-lib.js"></script>
+```
 
-Further minification details below.
+### GLOB
+Any of the input on any of the include helper functions will accept a string formatted with
+a valid [PHP GLOB](http://php.net/manual/en/function.glob.php) string.  I have used `GLOB_NOSORT | GLOB_BRACE)`
+as options.
 
-## Minify
+This allows you to do something like this:
 
-There are several rules which determine whether an asset will be minified.
+```php
+echo include_javascript(
+    'jquery-1.11.1.min',
+    'noty/packaged/jquery.noty.packaged.min',
+    'noty/themes/default',
+    'noty/layouts/*'); // Notice the astrix
+```
 
-1. Source is already minified
-    - Most asset (especially javascript libraries) creators provide their users with a pre-minified version of the file.
-    These files generally have the word "min" in their file names in some capacity.  Asset manager attempts to determine
-    if an asset is already minified by testing the file name with the following regex:
-    - ` /[\.\-_]min[\.\-_]/i `
-    - In the event that a file is already minified, no further minification attempt will be made
-2. Minified version already exists (source file NOT pre-minified)
-    - If you decide to include both the minified and non-minified version of an asset in your project, Asset manager will
-    attempt to determine if a minified version already exists by looking for a ".min.ext" version of the file in the
-    same directory as the source file
-    - This detection is not very intelligent yet, and is one of the areas I wish to improve.
-    - When an already-minified version is detected, the [filemtime](!http://php.net/manual/en/function.filemtime.php) value
-    of both the source and minify files is determined. If the source is newer, the minified version is re-created.
-3. Global minify set to ` false `
-    - If the "minify" config parameter is defined as ` false `, then no minification will occur unless you explicitly specify
-    the second parameter of ` $this->asset_manager->generate_asset_tag() ` to be ` true `.
-4. Global minify set to ` true `, asset minify set to ` false `
-    - If the "minify" config parameter is defined as ` true ` but the asset's minify parameter is set to ` false `,
-    that asset will not be minified unless you explicitly specify the second parameter of
-    ` $this->asset_manager->generate_asset_tag() ` to be ` true `.
-5. Global minify set to ` true `, asset minify set to ` true `
-    - In this case, the asset will always be minified during output unless you explicitly specify the second parameter of
-    ` $this->asset_manager->generate_asset_tag() ` to be ` false `.
+...which will output the following:
 
-If you do NOT specify a "minify" config parameter, Asset manager will attempt to determine it's location via the
-` ENVIRONMENT ` constant.  If ` ENVIRONMENT !== 'development' `, then minify = ` true `.
+```html
+<script src="http://your-url/assets/js/jquery-1.11.1.min.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/packaged/jquery.noty.packaged.min.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/themes/default.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/bottom.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/bottomCenter.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/bottomLeft.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/bottomRight.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/center.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/centerLeft.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/centerRight.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/inline.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/top.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/topCenter.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/topLeft.js" type="text/javascript"></script>
+<script src="http://your-url/assets/js/noty/layouts/topRight.js" type="text/javascript"></script>
+```
 
 ## Future improvements
-- Logical grouping
-- Physical grouping
-- LESS & SASS support
-- Asset output queuing
+- Assetic wrapper

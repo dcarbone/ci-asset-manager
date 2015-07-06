@@ -76,3 +76,24 @@ p.footer{
     border: 1px solid #D0D0D0;
     -webkit-box-shadow: 0 0 8px #D0D0D0;
 }
+
+#navigation {
+    padding-left: 0;
+    margin-left: 10px;
+}
+
+#navigation li {
+    display: inline-block;
+}
+
+#navigation a {
+    display: block;
+    padding: 5px 7px;
+    background: #f9f9f9;
+    color: #002166;
+    text-decoration: none;
+}
+
+#navigation a:active {
+    text-decoration:  none;
+}

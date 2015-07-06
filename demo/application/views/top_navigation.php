@@ -5,13 +5,13 @@
     </div>
     <ul id="navigation">
         <li>
-            <a href="<?php echo base_url(); ?>">Home</a>
+            <a href="<?php echo base_url(); ?>">Basic</a>
         </li>
         <li>
-            <a href="<?php echo site_url('welcome/queue_demo'); ?>">Queue Demo</a>
+            <a href="<?php echo site_url('welcome/multiple'); ?>">Multiple Demo</a>
         </li>
-        <li>
-            <a href="<?php echo site_url('welcome/group_demo'); ?>">Logical Group Demo</a>
-        </li>
+<!--        <li>-->
+<!--            <a href="--><?php //echo site_url('welcome/group_demo'); ?><!--">Logical Group Demo</a>-->
+<!--        </li>-->
     </ul>
 </div>
