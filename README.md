@@ -18,7 +18,7 @@ There are only 3 configuration parameters:
 Set this value to the name of the directory you store your assets in, relative to the root of your project.
 So, for instance, if your project looks like this:
 
-`
+```
 |-- src/
 |   |-- application/
 |   |-- assets/
@@ -26,7 +26,7 @@ So, for instance, if your project looks like this:
 |   |   |-- css/
 |   |-- system/
 |   |-- index.php
-`
+```
 
 ..then you would specify `'assets'` for this value.
 
