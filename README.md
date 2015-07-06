@@ -132,8 +132,11 @@ echo include_javascript(
 
 ### Attributes
 
-If you wish to apply a set of HTML attributes to multiple items, you may pass in an array containing
-`$attr_name => $attr_value` as the last argument.
+If you wish to apply a set of HTML attributes to multiple items, you may pass in an array with the following structure:
+```php
+array('attr_name' => 'attr_value')
+```
+...as the last argument.
 
 Example:
 ```php
