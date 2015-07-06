@@ -1,7 +1,7 @@
 asset_manager
 =============
 
-A simple asset management library for the <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a> framework.
+A simple asset management library for the [CodeIgniter](http://www.codeigniter.com/) framework.
 
 ## Installation
 Simply drag each file under each directory in this lib to the corresponding directories in your CI 2 application.
@@ -9,9 +9,9 @@ Simply drag each file under each directory in this lib to the corresponding dire
 ## Configuration
 There are only 3 configuration parameters:
 
-1. asset_dir_relative_path
-2. javascript_dir_name
-3. stylesheet_dir_name
+- asset_dir_relative_path
+- javascript_dir_name
+- stylesheet_dir_name
 
 *asset_dir_relative_path*
 
@@ -52,8 +52,9 @@ Usage is quite simple.  There are a number of helper functions provided:
 
 ### tag Functions
 There are two tag functions:
-1. javascript_tag
-2. stylesheet_tag
+
+- `javascript_tag`
+- `stylesheet_tag`
 
 Both of these functions accept 2 arguments:
 
@@ -64,8 +65,9 @@ Both return the appropriate HTML as a string.
 
 ### include Functions
 There are two include functions:
-1. include_javascript
-2. include_stylesheet
+
+- include_javascript
+- include_stylesheet
 
 These functions accept multiple different input types.
 
@@ -95,7 +97,7 @@ This will result in:
 
 ### GLOB
 Any of the input on any of the include helper functions will accept a string formatted with
-a valid [PHP GLOB](http://php.net/manual/en/function.glob.php) string.  I have used `GLOB_NOSORT | GLOB_BRACE)`
+a valid [PHP GLOB](http://php.net/manual/en/function.glob.php) string.  I have used `GLOB_NOSORT | GLOB_BRACE`
 as options.
 
 This allows you to do something like this:
@@ -126,6 +128,26 @@ echo include_javascript(
 <script src="http://your-url/assets/js/noty/layouts/topCenter.js" type="text/javascript"></script>
 <script src="http://your-url/assets/js/noty/layouts/topLeft.js" type="text/javascript"></script>
 <script src="http://your-url/assets/js/noty/layouts/topRight.js" type="text/javascript"></script>
+```
+
+### Attributes
+
+If you wish to apply a set of HTML attributes to multiple items, you may pass in an array with the following structure:
+```php
+array('attr_name' => 'attr_value')
+```
+...as the last argument.
+
+Example:
+```php
+echo include_javascript('jquery-1.11.1.min', 'my-js-lib', array('language' => 'javascript'));
+```
+
+...which will output:
+
+```html
+<script language="javascript" type="text/javascript" src="http://your-url/assets/js/jquery-1.11.1.min.js"></script>
+<script language="javascript" type="text/javascript" src="http://your-url/assets/js/my-js-lib.js"></script>
 ```
 
 ## Future improvements
