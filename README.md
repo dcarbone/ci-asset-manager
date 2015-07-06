@@ -137,7 +137,7 @@ If you wish to apply a set of HTML attributes to multiple items, you may pass in
 
 Example:
 ```php
-echo include_javascript('jquery-1.11.1.min', 'my-js-lib', array('language' => 'javascript');
+echo include_javascript('jquery-1.11.1.min', 'my-js-lib', array('language' => 'javascript'));
 ```
 
 ...which will output:
