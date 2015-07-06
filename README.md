@@ -95,7 +95,7 @@ This will result in:
 
 ### GLOB
 Any of the input on any of the include helper functions will accept a string formatted with
-a valid [PHP GLOB](http://php.net/manual/en/function.glob.php) string.  I have used `GLOB_NOSORT | GLOB_BRACE)`
+a valid [PHP GLOB](http://php.net/manual/en/function.glob.php) string.  I have used `GLOB_NOSORT | GLOB_BRACE`
 as options.
 
 This allows you to do something like this:
