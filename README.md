@@ -1,7 +1,7 @@
 asset_manager
 =============
 
-A simple asset management library for the <a href="http://ellislab.com/codeigniter" target="_blank">CodeIgniter</a> framework.
+A simple asset management library for the [CodeIgniter](http://www.codeigniter.com/) framework.
 
 ## Installation
 Simply drag each file under each directory in this lib to the corresponding directories in your CI 2 application.
