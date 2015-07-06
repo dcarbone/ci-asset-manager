@@ -41,7 +41,7 @@ This is the name of the directory under the above defined assets directory you s
 Using the above example, this value would be `'css'`.
 
 ## Loading
-You will either need to manually load up the asset_manager helper and lib, or add them to your CI autoload.php conf file.
+You will either need to manually load up the asset_manager config, helper, and library, or add them to your CI autoload.php conf file.
 
 ## Usage
 Usage is quite simple.  There are a number of helper functions provided:

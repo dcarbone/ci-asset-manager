@@ -84,8 +84,7 @@ class asset_manager
      */
     public function include_javascript($file, $additional = null)
     {
-        $parsed = static::_parse_include_args(func_get_args());
-        return $this->_include_assets($parsed[0], $parsed[1], 'javascript');
+        return $this->_include_assets(func_get_args(), 'javascript');
     }
 
     /**
@@ -95,17 +94,86 @@ class asset_manager
      */
     public function include_stylesheet($file, $additional = null)
     {
-        $parsed = static::_parse_include_args(func_get_args());
-        return $this->_include_assets($parsed[0], $parsed[1], 'stylesheet');
+        return $this->_include_assets(func_get_args(), 'stylesheet');
     }
 
 // -----------------  Internal use only --------------------------------------------------------------
 
     /**
+     * TODO: Maybe break this method up a bit?  Don't want to introduce too much overhead with tons of function calls, however.
+     *
+     * @param array $args
+     * @param string $type
+     * @return string
+     */
+    public function _include_assets(array $args, $type)
+    {
+        $parsed = static::_parse_include_args($args);
+        $files = $parsed[0];
+        $html_attributes = $parsed[1];
+
+        $output = '';
+        foreach($files as $file)
+        {
+            if ('javascript' === $type)
+            {
+                if (!preg_match(static::GLOB_REGEX, $file))
+                {
+                    $output = vsprintf(
+                        '%s%s',
+                        array(
+                            $output,
+                            $this->_include_javascript_asset($file, $html_attributes)
+                        ));
+                }
+                else
+                {
+                    $new_args = static::_parse_glob_string($this->javascript_dir_full_path, $file);
+                    $new_args[] = $html_attributes;
+                    $output = vsprintf(
+                        '%s%s',
+                        array(
+                            $output,
+                            $this->_include_assets($new_args, $type)
+                        )
+                    );
+                }
+            }
+            else if ('stylesheet' === $type)
+            {
+                if (!preg_match(static::GLOB_REGEX, $file))
+                {
+                    $output = vsprintf(
+                        '%s%s',
+                        array(
+                            $output,
+                            $this->output_stylesheet_asset($file, $html_attributes)
+                        )
+                    );
+                }
+                else
+                {
+                    $new_args = static::_parse_glob_string($this->stylesheet_dir_full_path, $file);
+                    $new_args[] = $html_attributes;
+                    $output = vsprintf(
+                        '%s%s',
+                        array(
+                            $output,
+                            $this->_include_assets($new_args, $type)
+                        )
+                    );
+                }
+            }
+        }
+
+        return $output;
+    }
+
+    /**
      * @param array $args
      * @return array
      */
-    protected static function _parse_include_args(array $args)
+    private static function _parse_include_args(array $args)
     {
         $files = array();
         $html_attributes = array();
@@ -129,69 +197,6 @@ class asset_manager
             $files,
             $html_attributes
         );
-    }
-
-    /**
-     * @param array $files
-     * @param array $html_attributes
-     * @param string $type
-     * @return string
-     */
-    protected function _include_assets(array $files, array $html_attributes, $type)
-    {
-        $output = '';
-        foreach($files as $file)
-        {
-            if ('javascript' === $type)
-            {
-                if (!preg_match(static::GLOB_REGEX, $file))
-                {
-                    $output = vsprintf(
-                        '%s%s',
-                        array(
-                            $output,
-                            $this->_include_javascript_asset($file, $html_attributes)
-                        ));
-                }
-                else
-                {
-                    $glob_files = static::_parse_glob_string($this->javascript_dir_full_path, $file);
-                    $output = vsprintf(
-                        '%s%s',
-                        array(
-                            $output,
-                            $this->_include_assets($glob_files, $html_attributes, $type)
-                        )
-                    );
-                }
-            }
-            else if ('stylesheet' === $type)
-            {
-                if (!preg_match(static::GLOB_REGEX, $file))
-                {
-                    $output = vsprintf(
-                        '%s%s',
-                        array(
-                            $output,
-                            $this->output_stylesheet_asset($file, $html_attributes)
-                        )
-                    );
-                }
-                else
-                {
-                    $glob_files = static::_parse_glob_string($this->stylesheet_dir_full_path, $file);
-                    $output = vsprintf(
-                        '%s%s',
-                        array(
-                            $output,
-                            $this->_include_assets($glob_files, $html_attributes, $type)
-                        )
-                    );
-                }
-            }
-        }
-
-        return $output;
     }
 
     /**
