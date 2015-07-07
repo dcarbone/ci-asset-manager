@@ -50,7 +50,6 @@ combined versions of assets, if combining is enabled.
 
 ### combine_groups
 
-This will globally turn on or off asset combining.  Assets are combined on a per-call basis, meaning if
-you execute:
+This will globally turn on or off asset combining.
 
 For more information on combining, see [here](COMBINING.md).
