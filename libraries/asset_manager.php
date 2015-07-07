@@ -541,6 +541,10 @@ class asset_manager
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
+        else
+        {
+            $realpath = realpath($full_path);
+        }
 
         if (static::_determine_path_readable_writeable($realpath))
         {
