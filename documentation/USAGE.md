@@ -36,7 +36,7 @@ echo include_stylesheet('basic');
 echo include_javascript('jquery-1.11.1.min');
 ```
 
-Will result in the following (using the dir structure in the example above):
+Will result in the following (using the dir structure in the [config](CONFIGURATION.md) readme):
 
 ```html
 <link rel="stylesheet" href="http://your-url/assets/css/basic.css" />
