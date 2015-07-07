@@ -1,4 +1,4 @@
-asset_manager
+ci-asset-manager
 =============
 
 A simple asset management library for the [CodeIgniter](http://www.codeigniter.com/) framework.
