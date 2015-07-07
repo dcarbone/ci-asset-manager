@@ -5,7 +5,7 @@
 ci-asset-manager handles combining asset files on a per-include-call basis.
 
 You may enable / disable combining globally by specifying the `combine_groups` parameter in the
-[config](CONFIG.md) file.
+[config](CONFIGURATION.md) file.
 
 So, for example:
 
