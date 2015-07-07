@@ -139,7 +139,7 @@ class asset_manager
                 {
                     if (preg_match(static::GLOB_REGEX, $file))
                     {
-                        $new_args = static::_parse_glob_string($this->javascript_dir_full_path, $file);
+                        $new_args = static::_execute_glob($this->javascript_dir_full_path, $file);
                         $new_args[] = $html_attributes;
                         $output = vsprintf(
                             '%s%s',
@@ -174,7 +174,7 @@ class asset_manager
                 {
                     if (preg_match(static::GLOB_REGEX, $file))
                     {
-                        $new_args = static::_parse_glob_string($this->stylesheet_dir_full_path, $file);
+                        $new_args = static::_execute_glob($this->stylesheet_dir_full_path, $file);
                         $new_args[] = $html_attributes;
                         $output = vsprintf(
                             '%s%s',
@@ -205,7 +205,7 @@ class asset_manager
      * @param array $args
      * @return array
      */
-    private function _parse_include_args(array $args)
+    protected function _parse_include_args(array $args)
     {
         $files = array();
         $html_attributes = array();
@@ -240,22 +240,70 @@ class asset_manager
         );
     }
 
-    private function _include_combined_javascript_assets(array $files, array $html_attributes)
+    /**
+     * @param array $files
+     * @param array $html_attributes
+     * @return string
+     */
+    protected function _include_combined_javascript_assets(array $files, array $html_attributes)
     {
-        $combine_name = sha1(implode('', $files));
-        $output = '';
-        foreach($files as $file)
-        {
-            if (!preg_match(static::GLOB_REGEX, $file))
-            {
-                $new_args = static::_parse_glob_string($this->javascript_dir_full_path, $file);
-            }
-        }
+        $combine_name = vsprintf('%s.js', array(sha1(implode('', $files))));
+        $full_path = vsprintf('%s%s', array($this->cache_dir_full_path, $combine_name));
+
+        if (!file_exists($full_path))
+            $this->_concatenate_asset_files($full_path, $files, $this->javascript_dir_full_path, '.js');
+
+        return $this->_create_include_script_element($combine_name, $html_attributes, true);
     }
 
-    private function _include_combined_stylesheet_assets(array $files, array $html_attributes)
+    /**
+     * @param array $files
+     * @param array $html_attributes
+     * @return string
+     */
+    protected function _include_combined_stylesheet_assets(array $files, array $html_attributes)
     {
+        $combine_name = vsprintf('%s.js', array(sha1(implode('', $files))));
+        $full_path = vsprintf('%s%s', array($this->cache_dir_full_path, $combine_name));
 
+        if (!file_exists($full_path))
+            $this->_concatenate_asset_files($full_path, $files, $this->stylesheet_dir_full_path, '.css');
+
+        return $this->_create_include_script_element($combine_name, $html_attributes, true);
+    }
+
+    /**
+     * @param string $combine_file
+     * @param array $input_files
+     * @param string $asset_path
+     * @param string $asset_ext
+     * @param resource $_fh
+     * @param bool $_nest
+     */
+    protected function _concatenate_asset_files($combine_file, array $input_files, $asset_path, $asset_ext, $_fh = null, $_nest = false)
+    {
+        if (null === $_fh)
+            $_fh = fopen($combine_file, 'a+');
+
+        foreach($input_files as $file)
+        {
+            $file = static::_trim_path(static::_cleanup_path($file));
+            if (false === strpos($file, $asset_ext))
+                $file = vsprintf('%s%s', array($file, $asset_ext));
+
+            if (preg_match(static::GLOB_REGEX, $file))
+            {
+                $this->_concatenate_asset_files($combine_file, static::_execute_glob($asset_path, $file), $asset_path, $asset_ext, $_fh, true);
+            }
+            else
+            {
+                fwrite($_fh, file_get_contents(vsprintf('%s%s', array($asset_path, $file))));
+                fwrite($_fh, ";\n");
+            }
+        }
+
+        if (false === $_nest)
+            fclose($_fh);
     }
 
     /**
@@ -270,15 +318,7 @@ class asset_manager
             $file = vsprintf('%s.js', array($file));
 
         if (file_exists(vsprintf('%s%s', array($this->javascript_dir_full_path, $file))))
-        {
-            return vsprintf("<script src=\"%s%s\"%s></script>\n", array(
-                $this->javascript_uri,
-                $file,
-                static::_generate_attribute_string(
-                    array_merge(array('type' => 'text/javascript'), $html_attributes)
-                )
-            ));
-        }
+            return $this->_create_include_script_element($file, $html_attributes);
 
         $msg = vsprintf(
             'ci-asset-manager - Could not locate requested javascript asset "%s".',
@@ -299,15 +339,7 @@ class asset_manager
             $file = vsprintf('%s.css', array($file));
 
         if (file_exists(vsprintf('%s%s', array($this->stylesheet_dir_full_path, $file))))
-        {
-            return vsprintf("<link href=\"%s%s\"%s />\n", array(
-                $this->stylesheet_uri,
-                $file,
-                static::_generate_attribute_string(
-                    array_merge(array('rel' => 'stylesheet'), $html_attributes)
-                )
-            ));
-        }
+            return $this->_create_include_link_element($file, $html_attributes);
 
         $msg = vsprintf(
             'ci-asset-manager - Could not locate requested stylesheet asset "%s".',
@@ -317,12 +349,46 @@ class asset_manager
     }
 
     /**
+     * @param string $src
+     * @param array $html_attributes
+     * @param bool $cache
+     * @return string
+     */
+    protected function _create_include_script_element($src, array $html_attributes, $cache = false)
+    {
+        return vsprintf("<script src=\"%s%s\"%s></script>\n", array(
+            $cache ? $this->cache_uri : $this->javascript_uri,
+            $src,
+            static::_generate_attribute_string(
+                array_merge(array('type' => 'text/javascript'), $html_attributes)
+            )
+        ));
+    }
+
+    /**
+     * @param string $href
+     * @param array $html_attributes
+     * @param bool $cache
+     * @return string
+     */
+    protected function _create_include_link_element($href, array $html_attributes, $cache = false)
+    {
+        return vsprintf("<link href=\"%s%s\"%s />\n", array(
+            $cache ? $this->cache_uri : $this->stylesheet_uri,
+            $href,
+            static::_generate_attribute_string(
+                array_merge(array('rel' => 'stylesheet'), $html_attributes)
+            )
+        ));
+    }
+
+    /**
      * @param string $path
      * @return string
      */
     protected static function _uri_from_relative_path($path)
     {
-        return static::_trim_path(base_url(static::_cleanup_path($path))).'/';
+        return vsprintf('%s/', array(static::_trim_path(base_url(static::_cleanup_path($path)))));
     }
 
     /**
@@ -352,7 +418,7 @@ class asset_manager
      * @param string $input
      * @return string[]
      */
-    protected static function _parse_glob_string($root, $input)
+    protected static function _execute_glob($root, $input)
     {
         $glob = glob(
             vsprintf(
