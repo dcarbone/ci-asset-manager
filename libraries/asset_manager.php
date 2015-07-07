@@ -356,11 +356,13 @@ class asset_manager
      */
     protected function _create_include_script_element($src, array $html_attributes, $cache = false)
     {
+        static $default_attributes = array('type' => 'text/javascript');
+
         return vsprintf("<script src=\"%s%s\"%s></script>\n", array(
             $cache ? $this->cache_uri : $this->javascript_uri,
             $src,
             static::_generate_attribute_string(
-                array_merge(array('type' => 'text/javascript'), $html_attributes)
+                array_merge($default_attributes, $html_attributes)
             )
         ));
     }
@@ -373,11 +375,13 @@ class asset_manager
      */
     protected function _create_include_link_element($href, array $html_attributes, $cache = false)
     {
+        static $default_attributes = array('rel' => 'stylesheet');
+
         return vsprintf("<link href=\"%s%s\"%s />\n", array(
             $cache ? $this->cache_uri : $this->stylesheet_uri,
             $href,
             static::_generate_attribute_string(
-                array_merge(array('rel' => 'stylesheet'), $html_attributes)
+                array_merge($default_attributes, $html_attributes)
             )
         ));
     }
