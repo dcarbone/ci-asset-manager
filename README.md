@@ -7,7 +7,7 @@ A simple asset management library for the [CodeIgniter](http://www.codeigniter.c
 Simply drag each file under each directory in this lib to the corresponding directories in your CI 2 application.
 
 1. [config/asset_manager.php](config/asset_manager.php) -> application/config
-2. [helpers/asset_manager_helper.php](helpers/asset_manager_helpers.php) -> application/helpers
+2. [helpers/asset_manager_helper.php](helpers/asset_manager_helper.php) -> application/helpers
 3. [libraries/asset_manager.php](libraries/asset_manager.php) -> application/libraries
 
 ## Loading
