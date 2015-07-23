@@ -263,7 +263,7 @@ class asset_manager
      */
     protected function _include_combined_stylesheet_assets(array $files, array $html_attributes)
     {
-        $combine_name = vsprintf('%s.js', array(sha1(implode('', $files))));
+        $combine_name = vsprintf('%s.css', array(sha1(implode('', $files))));
         $full_path = vsprintf('%s%s', array($this->cache_dir_full_path, $combine_name));
 
         if (!file_exists($full_path))
