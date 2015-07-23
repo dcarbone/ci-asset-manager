@@ -218,6 +218,7 @@ class asset_manager
                 case is_string($arg):
                     $files[] = $arg;
                     break;
+
                 case is_array($arg):
                     $html_attributes = $arg;
                     if (($i + 1) < $count && is_bool($args[$i + 1]))
@@ -424,22 +425,14 @@ class asset_manager
      */
     protected static function _execute_glob($root, $input)
     {
-        $glob = glob(
-            vsprintf(
-                '%s%s',
-                array(
-                    $root,
-                    $input
-                )
-            ),
-            GLOB_NOSORT | GLOB_BRACE);
+        $glob = glob(vsprintf('%s%s', array($root, $input)), GLOB_NOSORT | GLOB_BRACE);
         $files = array();
-        for ($i = 0, $count = count($glob); $i < $count; $i++)
+        foreach($glob as $file)
         {
-            if (substr($glob[$i], -1) === '.')
+            if (substr($file, -1) === '.')
                 continue;
 
-            $files[] = str_ireplace($root, '', $glob[$i]);
+            $files[] = str_ireplace($root, '', $file);
         }
 
         return $files;
@@ -456,11 +449,18 @@ class asset_manager
             $asset_dir_full_path = addslashes(get_asset_manager()->asset_dir_full_path);
 
         return preg_replace(
-            array('#[/\\\]+#S',
-                vsprintf('#%s#iS', array($asset_dir_full_path))),
-            array(DIRECTORY_SEPARATOR,
-                ''),
-            $file_realpath);
+            // search
+            array(
+                '#[/\\\]+#S',
+                vsprintf('#%s#iS', array($asset_dir_full_path))
+            ),
+            // replace
+            array(
+                DIRECTORY_SEPARATOR,
+                ''
+            ),
+            $file_realpath
+        );
     }
 
     /**
@@ -484,7 +484,7 @@ class asset_manager
      */
     protected function _determine_root_asset_paths(array $config)
     {
-       if (isset($config['asset_dir_relative_path']))
+        if (isset($config['asset_dir_relative_path']))
             $path = trim($config['asset_dir_relative_path'], "/\\");
         else
             $path = 'assets';
@@ -513,6 +513,8 @@ class asset_manager
     }
 
     /**
+     * TODO: Break this up a bit
+     *
      * @param array $config
      */
     protected function _determine_asset_type_paths(array $config)
@@ -677,7 +679,7 @@ class asset_manager
                 if (is_string($k))
                     $attr_string = vsprintf('%s %s="%s"', array($attr_string, $k, $v));
                 else if (isset($no_value[$v]))
-                    $attr_string = vsprintf('%s %s', array ($attr_string, $v));
+                    $attr_string = vsprintf('%s %s', array($attr_string, $v));
             }
         }
 
