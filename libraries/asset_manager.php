@@ -432,6 +432,9 @@ class asset_manager
             if (substr($file, -1) === '.')
                 continue;
 
+            if (false !== strpos($file, '.html'))
+                continue;
+
             $files[] = str_ireplace($root, '', $file);
         }
 
