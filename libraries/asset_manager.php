@@ -270,7 +270,7 @@ class asset_manager
         if (!file_exists($full_path))
             $this->_concatenate_asset_files($full_path, $files, $this->stylesheet_dir_full_path, '.css');
 
-        return $this->_create_include_script_element($combine_name, $html_attributes, true);
+        return $this->_create_include_link_element($combine_name, $html_attributes, true);
     }
 
     /**
