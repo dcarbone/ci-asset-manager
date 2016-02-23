@@ -147,10 +147,7 @@ class asset_manager
      */
     public function _include_assets(array $args, $type)
     {
-        $parsed = $this->_parse_include_args($args);
-        $files = $parsed[0];
-        $html_attributes = $parsed[1];
-        $combine = $parsed[2];
+        list($files, $html_attributes, $combine) = $this->_parse_include_args($args);
 
         $output = '';
         if ('javascript' === $type)
