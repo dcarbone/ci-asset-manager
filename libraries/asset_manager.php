@@ -7,6 +7,13 @@ class asset_manager
 {
     const GLOB_REGEX = '/[\[{*?}\]]+/S';
 
+    /** @var array */
+    public static $default_link_attributes = array('rel' => 'stylesheet');
+    /** @var array */
+    public static $default_style_attributes = array('type' => 'text/css');
+    /** @var array */
+    public static $default_script_attributes = array('type' => 'text/javascript');
+
     /** @var string */
     public $asset_dir_relative_path;
     /** @var string */
@@ -38,6 +45,9 @@ class asset_manager
     /** @var bool */
     public $combine_groups;
 
+    /** @var bool */
+    public $always_rebuild_combined;
+
     /**
      * Constructor
      *
@@ -58,6 +68,11 @@ class asset_manager
             $this->combine_groups = (bool)$config['combine_groups'];
         else
             $this->combine_groups = false;
+
+        if (isset($config['always_rebuild_combined']))
+            $this->always_rebuild_combined = (bool)$config['always_rebuild_combined'];
+        else
+            $this->always_rebuild_combined = false;
     }
 
     /**
@@ -67,11 +82,10 @@ class asset_manager
      */
     public function javascript_tag($content = null, array $html_attributes = array())
     {
-        return vsprintf('<script%s>%s</script>',
-            array(
-                static::_generate_attribute_string(array_merge(array('type' => 'text/javascript'), $html_attributes)),
-                (string)$content
-            )
+        return sprintf(
+            '<script%s>%s</script>',
+            static::_generate_attribute_string($html_attributes, self::$default_script_attributes),
+            (string)$content
         );
     }
 
@@ -82,11 +96,10 @@ class asset_manager
      */
     public function stylesheet_tag($content = null, array $html_attributes = array())
     {
-        return vsprintf('<style%s>%s</style>',
-            array(
-                static::_generate_attribute_string(array_merge(array('rel' => 'stylesheet'), $html_attributes)),
-                (string)$content
-            )
+        return sprintf(
+            '<style%s>%s</style>',
+            static::_generate_attribute_string($html_attributes, self::$default_style_attributes),
+            (string)$content
         );
     }
 
@@ -141,22 +154,18 @@ class asset_manager
                     {
                         $new_args = static::_execute_glob($this->javascript_dir_full_path, $file);
                         $new_args[] = $html_attributes;
-                        $output = vsprintf(
+                        $output = sprintf(
                             '%s%s',
-                            array(
-                                $output,
-                                $this->_include_assets($new_args, $type)
-                            )
+                            $output,
+                            $this->_include_assets($new_args, $type)
                         );
                     }
                     else
                     {
-                        $output = vsprintf(
+                        $output = sprintf(
                             '%s%s',
-                            array(
-                                $output,
-                                $this->_include_javascript_asset($file, $html_attributes)
-                            )
+                            $output,
+                            $this->_include_javascript_asset($file, $html_attributes)
                         );
                     }
                 }
@@ -176,22 +185,18 @@ class asset_manager
                     {
                         $new_args = static::_execute_glob($this->stylesheet_dir_full_path, $file);
                         $new_args[] = $html_attributes;
-                        $output = vsprintf(
+                        $output = sprintf(
                             '%s%s',
-                            array(
-                                $output,
-                                $this->_include_assets($new_args, $type)
-                            )
+                            $output,
+                            $this->_include_assets($new_args, $type)
                         );
                     }
                     else
                     {
-                        $output = vsprintf(
+                        $output = sprintf(
                             '%s%s',
-                            array(
-                                $output,
-                                $this->_include_stylesheet_asset($file, $html_attributes)
-                            )
+                            $output,
+                            $this->_include_stylesheet_asset($file, $html_attributes)
                         );
                     }
                 }
@@ -221,8 +226,9 @@ class asset_manager
 
                 case is_array($arg):
                     $html_attributes = $arg;
-                    if (($i + 1) < $count && is_bool($args[$i + 1]))
-                        $combine = $args[$i + 1];
+                    $_1 = $i+1;
+                    if ($_1 < $count && is_bool($args[$_1]))
+                        $combine = $args[$_1];
                     break 2;
 
                 case is_bool($arg);
@@ -248,10 +254,10 @@ class asset_manager
      */
     protected function _include_combined_javascript_assets(array $files, array $html_attributes)
     {
-        $combine_name = vsprintf('%s.js', array(sha1(implode('', $files))));
-        $full_path = vsprintf('%s%s', array($this->cache_dir_full_path, $combine_name));
+        $combine_name = sprintf('%s.js', sha1(implode('', $files)));
+        $full_path = sprintf('%s%s', $this->cache_dir_full_path, $combine_name);
 
-        if (!file_exists($full_path))
+        if ($this->always_rebuild_combined || !file_exists($full_path))
             $this->_concatenate_asset_files($full_path, $files, $this->javascript_dir_full_path, '.js');
 
         return $this->_create_include_script_element($combine_name, $html_attributes, true);
@@ -264,10 +270,10 @@ class asset_manager
      */
     protected function _include_combined_stylesheet_assets(array $files, array $html_attributes)
     {
-        $combine_name = vsprintf('%s.css', array(sha1(implode('', $files))));
-        $full_path = vsprintf('%s%s', array($this->cache_dir_full_path, $combine_name));
+        $combine_name = sprintf('%s.css', sha1(implode('', $files)));
+        $full_path = sprintf('%s%s', $this->cache_dir_full_path, $combine_name);
 
-        if (!file_exists($full_path))
+        if ($this->always_rebuild_combined || !file_exists($full_path))
             $this->_concatenate_asset_files($full_path, $files, $this->stylesheet_dir_full_path, '.css');
 
         return $this->_create_include_link_element($combine_name, $html_attributes, true);
@@ -290,7 +296,7 @@ class asset_manager
         {
             $file = static::_trim_path(static::_cleanup_path($file));
             if (false === strpos($file, $asset_ext))
-                $file = vsprintf('%s%s', array($file, $asset_ext));
+                $file = sprintf('%s%s', $file, $asset_ext);
 
             if (preg_match(static::GLOB_REGEX, $file))
             {
@@ -298,8 +304,8 @@ class asset_manager
             }
             else
             {
-                fwrite($_fh, file_get_contents(vsprintf('%s%s', array($asset_path, $file))));
-                fwrite($_fh, ";\n");
+                fwrite($_fh, file_get_contents(sprintf('%s%s', $asset_path, $file)));
+                fwrite($_fh, "\n;\n");
             }
         }
 
@@ -316,14 +322,14 @@ class asset_manager
     {
         $file = static::_trim_path(static::_cleanup_path($file));
         if (false === strpos($file, '.js'))
-            $file = vsprintf('%s.js', array($file));
+            $file = sprintf('%s.js', $file);
 
-        if (file_exists(vsprintf('%s%s', array($this->javascript_dir_full_path, $file))))
+        if (file_exists(sprintf('%s%s', $this->javascript_dir_full_path, $file)))
             return $this->_create_include_script_element($file, $html_attributes);
 
-        $msg = vsprintf(
+        $msg = sprintf(
             'ci-asset-manager - Could not locate requested javascript asset "%s".',
-            array($file));
+            $file);
         log_message('error', $msg);
         throw new \RuntimeException($msg);
     }
@@ -337,14 +343,14 @@ class asset_manager
     {
         $file = static::_trim_path(static::_cleanup_path($file));
         if (false === strpos($file, '.css'))
-            $file = vsprintf('%s.css', array($file));
+            $file = sprintf('%s.css', $file);
 
-        if (file_exists(vsprintf('%s%s', array($this->stylesheet_dir_full_path, $file))))
+        if (file_exists(sprintf('%s%s', $this->stylesheet_dir_full_path, $file)))
             return $this->_create_include_link_element($file, $html_attributes);
 
-        $msg = vsprintf(
+        $msg = sprintf(
             'ci-asset-manager - Could not locate requested stylesheet asset "%s".',
-            array($file));
+            $file);
         log_message('error', $msg);
         throw new \RuntimeException($msg);
     }
@@ -357,15 +363,12 @@ class asset_manager
      */
     protected function _create_include_script_element($src, array $html_attributes, $cache = false)
     {
-        static $default_attributes = array('type' => 'text/javascript');
-
-        return vsprintf("<script src=\"%s%s\"%s></script>\n", array(
+        return sprintf(
+            "<script src=\"%s%s\"%s></script>\n",
             $cache ? $this->cache_uri : $this->javascript_uri,
             $src,
-            static::_generate_attribute_string(
-                array_merge($default_attributes, $html_attributes)
-            )
-        ));
+            static::_generate_attribute_string($html_attributes, self::$default_script_attributes)
+        );
     }
 
     /**
@@ -376,15 +379,12 @@ class asset_manager
      */
     protected function _create_include_link_element($href, array $html_attributes, $cache = false)
     {
-        static $default_attributes = array('rel' => 'stylesheet');
-
-        return vsprintf("<link href=\"%s%s\"%s />\n", array(
+        return sprintf(
+            "<link href=\"%s%s\"%s />\n",
             $cache ? $this->cache_uri : $this->stylesheet_uri,
             $href,
-            static::_generate_attribute_string(
-                array_merge($default_attributes, $html_attributes)
-            )
-        ));
+            static::_generate_attribute_string($html_attributes, self::$default_link_attributes)
+        );
     }
 
     /**
@@ -393,7 +393,7 @@ class asset_manager
      */
     protected static function _uri_from_relative_path($path)
     {
-        return vsprintf('%s/', array(static::_trim_path(base_url(static::_cleanup_path($path)))));
+        return sprintf('%s/', static::_trim_path(base_url(static::_cleanup_path($path))));
     }
 
     /**
@@ -415,7 +415,7 @@ class asset_manager
      */
     protected static function _trim_path($path)
     {
-        return trim($path, " \t\n\r\0\x0B/");
+        return rtrim($path, " \t\n\r\0\x0B/");
     }
 
     /**
@@ -425,7 +425,7 @@ class asset_manager
      */
     protected static function _execute_glob($root, $input)
     {
-        $glob = glob(vsprintf('%s%s', array($root, $input)), GLOB_NOSORT | GLOB_BRACE);
+        $glob = glob(sprintf('%s%s', $root, $input), GLOB_NOSORT | GLOB_BRACE);
         $files = array();
         foreach($glob as $file)
         {
@@ -452,10 +452,10 @@ class asset_manager
             $asset_dir_full_path = addslashes(get_asset_manager()->asset_dir_full_path);
 
         return preg_replace(
-            // search
+        // search
             array(
                 '#[/\\\]+#S',
-                vsprintf('#%s#iS', array($asset_dir_full_path))
+                sprintf('#%s#iS', $asset_dir_full_path)
             ),
             // replace
             array(
@@ -488,7 +488,7 @@ class asset_manager
     protected function _determine_root_asset_paths(array $config)
     {
         if (isset($config['asset_dir_relative_path']))
-            $path = trim($config['asset_dir_relative_path'], "/\\");
+            $path = rtrim($config['asset_dir_relative_path'], "/\\");
         else
             $path = 'assets';
 
@@ -496,20 +496,20 @@ class asset_manager
 
         if (false === $realpath)
         {
-            $msg = vsprintf('ci-asset-manager - Asset directory "%s" does not appear to exist.', array($path));
+            $msg = sprintf('ci-asset-manager - Asset directory "%s" does not appear to exist.', $path);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
 
         if (static::_determine_path_readable_writeable($realpath))
         {
-            $this->asset_dir_relative_path = vsprintf('%s/', array($path));
-            $this->asset_dir_full_path = vsprintf('%s/', array($realpath));
+            $this->asset_dir_relative_path = sprintf('%s/', $path);
+            $this->asset_dir_full_path = sprintf('%s/', $realpath);
             $this->asset_dir_uri = static::_uri_from_relative_path($this->asset_dir_relative_path);
         }
         else
         {
-            $msg = vsprintf('ci-asset-manager - Specified asset path "%s" is not readable or writable.', array($path));
+            $msg = sprintf('ci-asset-manager - Specified asset path "%s" is not readable or writable.', $path);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
@@ -527,13 +527,13 @@ class asset_manager
         else
             $js_dir = 'js';
 
-        $realpath = realpath(vsprintf('%s%s', array($this->asset_dir_full_path, $js_dir)));
+        $realpath = realpath(sprintf('%s%s', $this->asset_dir_full_path, $js_dir));
 
         if (false === $realpath)
         {
-            $msg = vsprintf(
+            $msg = sprintf(
                 'ci-asset-manager - Specified Javascript directory "%s" does not appear to exist.',
-                array($js_dir));
+                $js_dir);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
@@ -541,19 +541,20 @@ class asset_manager
         if (static::_determine_path_readable_writeable($realpath))
         {
             $this->javascript_dir_name = $js_dir;
-            $this->javascript_dir_full_path = vsprintf('%s/', array($realpath));
+            $this->javascript_dir_full_path = sprintf('%s/', $realpath);
             $this->javascript_uri = static::_uri_from_relative_path(
-                vsprintf('%s%s/', array(
+                sprintf(
+                    '%s%s/',
                     $this->asset_dir_relative_path,
                     $js_dir
-                ))
+                )
             );
         }
         else
         {
-            $msg = vsprintf(
+            $msg = sprintf(
                 'ci-asset-manager - Specified Javascript directory "%s" does not appear to be readable or writable.',
-                array($js_dir));
+                $js_dir);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
@@ -563,13 +564,13 @@ class asset_manager
         else
             $css_dir = 'css';
 
-        $realpath = realpath(vsprintf('%s%s', array($this->asset_dir_full_path, $css_dir)));
+        $realpath = realpath(sprintf('%s%s', $this->asset_dir_full_path, $css_dir));
 
         if (false === $realpath)
         {
-            $msg = vsprintf(
+            $msg = sprintf(
                 'ci-asset-manager - Specified Stylesheet directory %s does not appear to exist.',
-                array($css_dir));
+                $css_dir);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
@@ -577,19 +578,20 @@ class asset_manager
         if (static::_determine_path_readable_writeable($realpath))
         {
             $this->stylesheet_dir_name = $css_dir;
-            $this->stylesheet_dir_full_path = vsprintf('%s/', array($realpath));
+            $this->stylesheet_dir_full_path = sprintf('%s/', $realpath);
             $this->stylesheet_uri = static::_uri_from_relative_path(
-                vsprintf('%s%s/', array(
+                sprintf(
+                    '%s%s/',
                     $this->asset_dir_relative_path,
                     $css_dir
-                ))
+                )
             );
         }
         else
         {
-            $msg = vsprintf(
+            $msg = sprintf(
                 'ci-asset-manager - Specified Stylesheet directory "%s" does not appear to be readable or writable.',
-                array($css_dir));
+                $css_dir);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
@@ -605,14 +607,14 @@ class asset_manager
         else
             $cache_dir = 'cache';
 
-        $full_path = vsprintf('%s%s', array($this->asset_dir_full_path, $cache_dir));
+        $full_path = sprintf('%s%s', $this->asset_dir_full_path, $cache_dir);
         $realpath = realpath($full_path);
 
         if (false === $realpath && false === (bool)@mkdir($full_path))
         {
-            $msg = vsprintf(
+            $msg = sprintf(
                 'ci-asset-manager - Specified cache directory "%s" does not appear to exist.',
-                array($cache_dir));
+                $cache_dir);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
@@ -624,19 +626,20 @@ class asset_manager
         if (static::_determine_path_readable_writeable($realpath))
         {
             $this->cache_dir_name = $cache_dir;
-            $this->cache_dir_full_path = vsprintf('%s/', array($realpath));
+            $this->cache_dir_full_path = sprintf('%s/', $realpath);
             $this->cache_uri = static::_uri_from_relative_path(
-                vsprintf('%s%s/', array(
+                sprintf(
+                    '%s%s/',
                     $this->asset_dir_relative_path,
                     $cache_dir
-                ))
+                )
             );
         }
         else
         {
-            $msg = vsprintf(
+            $msg = sprintf(
                 'ci-asset-manager - Specified cached directory "%s" does not appear to be readable or writable.',
-                array($cache_dir));
+                $cache_dir);
             log_message('error', $msg);
             throw new \RuntimeException($msg);
         }
@@ -662,30 +665,63 @@ class asset_manager
 
     /**
      * @param array $attribute_map
+     * @param array $defaults
      * @return string
      */
-    protected static function _generate_attribute_string(array $attribute_map)
+    protected static function _generate_attribute_string(array $attribute_map, array $defaults = array())
     {
-        static $no_value = array(
-            'async' => true,
-            'defer' => true,
-        );
-
+        $combined = self::_parse_attribute_arrays($attribute_map, $defaults);
         $attr_string = '';
-        if (count($attribute_map) > 0)
-        {
-            foreach($attribute_map as $k=>$v)
-            {
-                $k = trim($k);
-                $v = trim($v);
 
+        if (count($combined) > 0)
+        {
+            foreach($combined as $k=>$v)
+            {
                 if (is_string($k))
-                    $attr_string = vsprintf('%s %s="%s"', array($attr_string, $k, $v));
-                else if (isset($no_value[$v]))
-                    $attr_string = vsprintf('%s %s', array($attr_string, $v));
+                    $attr_string = sprintf('%s %s="%s"', $attr_string, trim($k), trim($v));
+                else
+                    $attr_string = sprintf('%s %s', $attr_string, trim($v));
             }
         }
 
         return $attr_string;
+    }
+
+    /**
+     * @param array $attribute_map
+     * @param array $defaults
+     * @return array
+     */
+    protected static function _parse_attribute_arrays(array $attribute_map, array $defaults)
+    {
+        $attr_count = count($attribute_map);
+        $def_count = count($defaults);
+
+        if (0 < $attr_count && 0 < $def_count)
+        {
+            $combined = $defaults;
+
+            foreach($attribute_map as $k=>$v)
+            {
+                if (is_string($k))
+                {
+                    $combined[$k] = $v;
+                }
+                else
+                {
+                    $idx = array_search($v, $combined, true);
+                    if (-1 === $idx)
+                        $combined[] = $v;
+                }
+            }
+        }
+
+        if (0 < $attr_count)
+            return $attribute_map;
+
+        if (0 < $def_count)
+            return $defaults;
+
+        return array();
     }
 }

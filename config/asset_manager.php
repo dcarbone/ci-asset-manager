@@ -6,7 +6,8 @@ $config['asset_manager'] = array(
     'javascript_dir_name' => 'js',
     'stylesheet_dir_name' => 'css',
     'cache_dir_name' => 'cache',
-    'combine_groups' => false,
+    'combine_groups' => true,
+    'always_rebuild_combined' => false
 
 );
 
