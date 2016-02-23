@@ -7,13 +7,6 @@ class asset_manager
 {
     const GLOB_REGEX = '/[\[{*?}\]]+/S';
 
-    /** @var array */
-    public static $default_link_attributes = array('rel' => 'stylesheet');
-    /** @var array */
-    public static $default_style_attributes = array('type' => 'text/css');
-    /** @var array */
-    public static $default_script_attributes = array('type' => 'text/javascript');
-
     /** @var string */
     public $asset_dir_relative_path;
     /** @var string */
@@ -44,9 +37,15 @@ class asset_manager
 
     /** @var bool */
     public $combine_groups;
-
     /** @var bool */
     public $always_rebuild_combined;
+
+    /** @var array */
+    public $default_link_attributes = array('rel' => 'stylesheet');
+    /** @var array */
+    public $default_style_attributes = array('type' => 'text/css');
+    /** @var array */
+    public $default_script_attributes = array('type' => 'text/javascript');
 
     /**
      * Constructor
@@ -73,6 +72,20 @@ class asset_manager
             $this->always_rebuild_combined = (bool)$config['always_rebuild_combined'];
         else
             $this->always_rebuild_combined = false;
+
+        if (isset($config['default_attributes']))
+        {
+            $defaults = $config['default_attributes'];
+
+            if (isset($defaults['link']) && is_array($defaults['link']))
+                $this->default_link_attributes = $defaults['link'];
+
+            if (isset($defaults['style']) && is_array($defaults['style']))
+                $this->default_style_attributes = $defaults['style'];
+
+            if (isset($defaults['script']) && is_array($defaults['script']))
+                $this->default_script_attributes = $defaults['script'];
+        }
     }
 
     /**
@@ -84,7 +97,7 @@ class asset_manager
     {
         return sprintf(
             '<script%s>%s</script>',
-            static::_generate_attribute_string($html_attributes, self::$default_script_attributes),
+            static::_generate_attribute_string($html_attributes, $this->default_script_attributes),
             (string)$content
         );
     }
@@ -98,7 +111,7 @@ class asset_manager
     {
         return sprintf(
             '<style%s>%s</style>',
-            static::_generate_attribute_string($html_attributes, self::$default_style_attributes),
+            static::_generate_attribute_string($html_attributes, $this->default_style_attributes),
             (string)$content
         );
     }
@@ -367,7 +380,7 @@ class asset_manager
             "<script src=\"%s%s\"%s></script>\n",
             $cache ? $this->cache_uri : $this->javascript_uri,
             $src,
-            static::_generate_attribute_string($html_attributes, self::$default_script_attributes)
+            static::_generate_attribute_string($html_attributes, $this->default_script_attributes)
         );
     }
 
@@ -383,7 +396,7 @@ class asset_manager
             "<link href=\"%s%s\"%s />\n",
             $cache ? $this->cache_uri : $this->stylesheet_uri,
             $href,
-            static::_generate_attribute_string($html_attributes, self::$default_link_attributes)
+            static::_generate_attribute_string($html_attributes, $this->default_link_attributes)
         );
     }
 

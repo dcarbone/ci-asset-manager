@@ -9,7 +9,7 @@ Usage is quite simple.  There are a number of helper functions provided:
 *Note*: For each of the below functions, inclusion of the filetype extension is optional
 
 
-### tag Functions
+### `tag` Functions
 There are two tag functions:
 
 - `javascript_tag`
@@ -22,7 +22,7 @@ Both of these functions accept 2 arguments:
 
 Both return the appropriate HTML as a string.
 
-### include Functions
+### `include` Functions
 There are two include functions:
 
 - include_javascript
@@ -93,7 +93,11 @@ echo include_javascript(
 
 If you wish to apply a set of HTML attributes to multiple items, you may pass in an array with the following structure:
 ```php
-array('attr_name' => 'attr_value')
+// Attributes with values:
+array('attr_name' => 'attr_value');
+
+// Attributes without values (script async, for example):
+array('attr_name');
 ```
 ...as the last argument (or second to last, if specifying combining).
 
@@ -108,6 +112,9 @@ echo include_javascript('jquery-1.11.1.min', 'my-js-lib', array('language' => 'j
 <script language="javascript" type="text/javascript" src="http://your-url/assets/js/jquery-1.11.1.min.js"></script>
 <script language="javascript" type="text/javascript" src="http://your-url/assets/js/my-js-lib.js"></script>
 ```
+
+Additionally, any attributes defined in this manner will OVERRIDE any default attributes specified during
+configuration, so be careful.
 
 ### Combining
 
