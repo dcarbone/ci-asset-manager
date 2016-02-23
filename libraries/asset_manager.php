@@ -239,14 +239,11 @@ class asset_manager
 
                 case is_array($arg):
                     $html_attributes = $arg;
-                    $_1 = $i+1;
-                    if ($_1 < $count && is_bool($args[$_1]))
-                        $combine = $args[$_1];
-                    break 2;
+                    break;
 
                 case is_bool($arg);
                     $combine = $arg;
-                    break 2;
+                    break;
 
                 default:
                     break 2;
