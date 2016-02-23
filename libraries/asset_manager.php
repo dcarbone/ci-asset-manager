@@ -297,7 +297,7 @@ class asset_manager
     protected function _concatenate_asset_files($combine_file, array $input_files, $asset_path, $asset_ext, $_fh = null, $_nest = false)
     {
         if (null === $_fh)
-            $_fh = fopen($combine_file, 'a+');
+            $_fh = fopen($combine_file, 'w+');
 
         foreach($input_files as $file)
         {
