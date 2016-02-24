@@ -323,7 +323,7 @@ class asset_manager
             else
             {
                 fwrite($_fh, file_get_contents(sprintf('%s%s', $asset_path, $file)));
-                fwrite($_fh, "\n;\n");
+                fwrite($_fh, "\n");
             }
         }
 
